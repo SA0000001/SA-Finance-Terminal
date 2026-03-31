@@ -138,28 +138,21 @@ def render_data_table_card(title: str, rows, kicker: str = "", caption: str = ""
     kicker_html = f"<div class='table-kicker'>{clean_text(kicker)}</div>" if kicker else ""
     caption_html = f"<div class='table-caption'>{clean_text(caption)}</div>" if caption else ""
     rows_html = "".join(
-        f"""
-        <div class="data-row">
-            <div class="data-key">{clean_text(label)}</div>
-            <div class="data-value">{display_value(value)}</div>
-        </div>
-        """
+        f"<div class='data-row'><div class='data-key'>{clean_text(label)}</div><div class='data-value'>{display_value(value)}</div></div>"
         for label, value in rows
     )
+    html = (
+        f"<div class='data-card'>"
+        f"<div class='data-card-head'>"
+        f"{kicker_html}"
+        f"<div class='table-title'>{clean_text(title)}</div>"
+        f"{caption_html}"
+        f"</div>"
+        f"<div class='data-grid-head'><span>Metrik</span><span>Deger</span></div>"
+        f"<div class='data-rows'>{rows_html}</div>"
+        f"</div>"
+    )
     st.markdown(
-        f"""
-        <div class="data-card">
-            <div class="data-card-head">
-                {kicker_html}
-                <div class="table-title">{clean_text(title)}</div>
-                {caption_html}
-            </div>
-            <div class="data-grid-head">
-                <span>Metrik</span>
-                <span>Deger</span>
-            </div>
-            <div class="data-rows">{rows_html}</div>
-        </div>
-        """,
+        html,
         unsafe_allow_html=True,
     )
