@@ -12,8 +12,8 @@ def render_page_header(last_updated: str, health_summary: dict, brief: dict, pre
                 <div class="hero-kicker">Digital Asset Intelligence</div>
                 <h1>SA Finance Alpha Terminal</h1>
                 <div class="header-subtitle">
-                    Kripto, makro ve likidite verileri tek bir operasyon terminalinde okunur.
-                    Gereksiz kart tekrarlarini kaldirip karar akisina odaklanan daha sakin bir duzen kuruldu.
+                    Makrodan mikroya uzanan piyasa rontgeni, risk akisi ve alpha teyitlerini
+                    tek bir ust segment terminal deneyiminde toplar.
                 </div>
                 <div class="header-summary">
                     <div class="summary-chip">
@@ -47,7 +47,7 @@ def render_page_header(last_updated: str, health_summary: dict, brief: dict, pre
     )
     render_health_bar(health_summary)
     st.markdown(
-        "<div class='section-lead'>Ust bolum yonu verir, orta bolum karar sinyallerini aciklar, alt bolum ise tetikleyici senaryolari ve alarmlari toplar.</div>",
+        "<div class='section-lead'>Ilk katman rejimi ve yonu verir; ikinci katman piyasa, akis ve sinyal yuzeylerini aciklar; derin katmanlar ise detay veri atlasini ve raporlari tasir.</div>",
         unsafe_allow_html=True,
     )
 
@@ -71,7 +71,7 @@ def render_health_panel(health_summary: dict):
 
 def render_sidebar(data, brief, last_updated: str, health_summary: dict, preferences: dict, alerts: list[dict]):
     with st.sidebar:
-        st.markdown("### Komuta Paneli")
+        st.markdown("### Control Rail")
         st.caption(f"Son guncelleme: {last_updated}")
         st.divider()
 
@@ -95,14 +95,14 @@ def render_sidebar(data, brief, last_updated: str, health_summary: dict, prefere
         st.markdown(
             f"""
             <div class="sidebar-note">
-                Terminal ana yuzeyinde tekrar eden ozet kartlari kaldirildi.
-                Bu alan artik sadece kontrol, disa aktarma ve veri sagligi icin kullaniliyor.
+                Komuta paneli; yenileme, disa aktarma, veri sagligi ve hizli operasyon notlari icin ayrildi.
+                Ana ekran ise tamamen karar destek ve terminal akisina odaklandi.
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-        st.markdown("#### Hizli Notlar")
+        st.markdown("#### Live Notes")
         st.markdown(f"- Piyasa rejimi: {clean_text(brief['regime']['title'])}")
         st.markdown(f"- Izlenen seviye: {clean_text(brief['focus']['detail'])}")
         st.markdown(f"- ETF akisi: {clean_text(data.get('ETF_FLOW_TOTAL', '-'))}")
@@ -113,12 +113,12 @@ def render_sidebar(data, brief, last_updated: str, health_summary: dict, prefere
 
         if alerts:
             st.divider()
-            st.markdown("#### Aktif Alarmlar")
+            st.markdown("#### Alert Queue")
             for alert in alerts:
                 st.markdown(f"- {clean_text(alert['title'])}: {clean_text(alert['detail'])}")
 
         st.divider()
-        with st.expander("Veri Sagligi", expanded=False):
+        with st.expander("Kaynak Sagligi", expanded=False):
             render_health_panel(health_summary)
 
         st.divider()

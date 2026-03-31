@@ -139,28 +139,26 @@ def render_data_table_card(title: str, rows, kicker: str = "", caption: str = ""
     caption_html = f"<div class='table-caption'>{clean_text(caption)}</div>" if caption else ""
     rows_html = "".join(
         f"""
-        <tr>
-            <td>{clean_text(label)}</td>
-            <td>{display_value(value)}</td>
-        </tr>
+        <div class="data-row">
+            <div class="data-key">{clean_text(label)}</div>
+            <div class="data-value">{display_value(value)}</div>
+        </div>
         """
         for label, value in rows
     )
     st.markdown(
         f"""
         <div class="data-card">
-            {kicker_html}
-            <div class="table-title">{clean_text(title)}</div>
-            {caption_html}
-            <table class="terminal-table">
-                <thead>
-                    <tr>
-                        <th>Metrik</th>
-                        <th>Deger</th>
-                    </tr>
-                </thead>
-                <tbody>{rows_html}</tbody>
-            </table>
+            <div class="data-card-head">
+                {kicker_html}
+                <div class="table-title">{clean_text(title)}</div>
+                {caption_html}
+            </div>
+            <div class="data-grid-head">
+                <span>Metrik</span>
+                <span>Deger</span>
+            </div>
+            <div class="data-rows">{rows_html}</div>
         </div>
         """,
         unsafe_allow_html=True,
