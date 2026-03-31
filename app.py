@@ -12,7 +12,6 @@ from domain.analytics import (
     build_alerts,
     build_analytics_payload,
     build_daily_summary_markdown,
-    build_pinned_metrics,
     markdown_to_basic_pdf_bytes,
 )
 from domain.market_brief import build_market_brief
@@ -20,7 +19,15 @@ from services.ai_service import build_openrouter_client, generate_strategy_repor
 from services.health import build_health_summary, merge_source_health
 from services.market_data import load_terminal_data
 from services.preferences import load_preferences, save_preferences
-from ui.components import cat, clean_text, render_cards, render_info_panel, render_market_brief
+from ui.components import (
+    cat,
+    clean_text,
+    display_value,
+    render_cards,
+    render_data_table_card,
+    render_info_panel,
+    render_market_brief,
+)
 from ui.layout import render_health_alerts, render_page_header, render_sidebar
 
 load_dotenv()
@@ -283,6 +290,13 @@ html, body, [data-testid="stAppViewContainer"] {
     margin-top: 10px;
 }
 
+.metric-placeholder {
+    color: var(--muted);
+    font-size: 1rem;
+    letter-spacing: 0;
+    line-height: 1.4;
+}
+
 .metric-delta-pos { color: var(--green); font-size: 0.8rem; font-family: var(--mono); }
 .metric-delta-neg { color: var(--red); font-size: 0.8rem; font-family: var(--mono); }
 .metric-delta-neu { color: var(--muted); font-size: 0.8rem; font-family: var(--mono); }
@@ -398,21 +412,22 @@ html, body, [data-testid="stAppViewContainer"] {
     margin-top: 14px;
 }
 
-[data-testid="stTabs"] { margin-top: 12px; }
 [data-testid="stTab"] {
-    background: transparent !important;
-    border: none !important;
-    border-bottom: 2px solid transparent !important;
-    border-radius: 0 !important;
-    padding: 12px 2px !important;
-    margin-right: 22px !important;
+    background: rgba(10, 17, 29, 0.74) !important;
+    border: 1px solid rgba(126, 158, 197, 0.08) !important;
+    border-bottom: 1px solid rgba(126, 158, 197, 0.08) !important;
+    border-radius: 999px !important;
+    padding: 10px 16px !important;
+    margin-right: 12px !important;
     color: var(--muted) !important;
     font-weight: 600 !important;
+    transition: all 180ms ease !important;
 }
 [data-testid="stTab"][aria-selected="true"] {
-    background: transparent !important;
-    border-color: var(--accent) !important;
+    background: rgba(14, 27, 42, 0.98) !important;
+    border-color: rgba(116, 193, 233, 0.42) !important;
     color: var(--text) !important;
+    box-shadow: inset 0 -2px 0 rgba(89, 212, 255, 0.9);
 }
 
 .news-card {
@@ -525,15 +540,170 @@ html, body, [data-testid="stAppViewContainer"] {
 [data-testid="stDownloadButton"] > button {
     border-radius: 14px !important;
     border: 1px solid var(--border-strong) !important;
-    background: rgba(14, 28, 46, 0.92) !important;
+    background: linear-gradient(180deg, rgba(18, 31, 47, 0.96), rgba(11, 21, 34, 0.96)) !important;
     color: var(--text) !important;
     font-weight: 700 !important;
+    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease !important;
+}
+
+[data-testid="stButton"] > button:hover,
+[data-testid="stDownloadButton"] > button:hover {
+    border-color: rgba(116, 193, 233, 0.42) !important;
+    transform: translateY(-1px);
 }
 
 [data-testid="stDataFrame"] {
     border-radius: 16px;
     overflow: hidden;
     border: 1px solid var(--border);
+}
+
+.hero-grid {
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap: 18px;
+}
+
+.signal-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.atlas-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.data-card {
+    background: linear-gradient(180deg, rgba(10, 18, 30, 0.9), rgba(8, 15, 25, 0.92));
+    border: 1px solid rgba(126, 158, 197, 0.12);
+    border-radius: 22px;
+    padding: 18px 18px 14px;
+    height: 100%;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.15);
+}
+
+.table-kicker {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.table-title {
+    color: var(--text);
+    font-size: 1.08rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.table-caption {
+    color: var(--muted);
+    font-size: 0.84rem;
+    line-height: 1.55;
+    margin: 8px 0 14px;
+}
+
+.terminal-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.terminal-table th,
+.terminal-table td {
+    border-bottom: 1px solid rgba(126, 158, 197, 0.12);
+    padding: 11px 10px;
+    vertical-align: top;
+}
+
+.terminal-table th {
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-family: var(--mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: left;
+}
+
+.terminal-table td {
+    color: var(--text);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.table-section-title {
+    color: var(--text);
+    font-size: 1.45rem;
+    font-weight: 750;
+    letter-spacing: -0.04em;
+    margin: 8px 0 4px;
+}
+
+.table-section-copy {
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.65;
+    margin-bottom: 16px;
+}
+
+.deck-card {
+    background: linear-gradient(180deg, rgba(11, 19, 31, 0.92), rgba(8, 15, 24, 0.94));
+    border: 1px solid rgba(126, 158, 197, 0.14);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 22px 54px rgba(0, 0, 0, 0.18);
+    height: 100%;
+}
+
+.deck-title {
+    color: var(--text);
+    font-size: 1.56rem;
+    font-weight: 760;
+    letter-spacing: -0.05em;
+}
+
+.deck-copy {
+    color: var(--muted);
+    line-height: 1.65;
+    font-size: 0.92rem;
+    margin-top: 10px;
+}
+
+.deck-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.deck-stat {
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(126, 158, 197, 0.1);
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.deck-stat span {
+    display: block;
+}
+
+.deck-stat-label {
+    color: var(--muted);
+    font-size: 0.66rem;
+    font-family: var(--mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.deck-stat-value {
+    margin-top: 8px;
+    color: var(--text);
+    font-weight: 750;
+    font-size: 1rem;
 }
 
 @media (max-width: 900px) {
@@ -550,11 +720,165 @@ html, body, [data-testid="stAppViewContainer"] {
     .score-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .panel-row { grid-template-columns: 1fr; }
     .panel-row strong { text-align: left; }
+    .hero-grid,
+    .signal-grid,
+    .atlas-grid,
+    .deck-stats { grid-template-columns: 1fr; }
 }
 </style>
 """,
     unsafe_allow_html=True,
 )
+
+MACRO_MARKET_SECTIONS = [
+    {
+        "title": "Global Hisse Endeksleri",
+        "kicker": "US Amerika",
+        "caption": "Risk istahini ve global equity yonunu tek bolumde toplar.",
+        "rows": [("S&P 500", "SP500"), ("NASDAQ", "NASDAQ"), ("Dow Jones", "DOW")],
+    },
+    {
+        "title": "Global Hisse Endeksleri",
+        "kicker": "Avrupa",
+        "caption": "Avrupa cekirdegi ve yerel risk tonu.",
+        "rows": [("DAX", "DAX"), ("FTSE 100", "FTSE"), ("BIST 100", "BIST100")],
+    },
+    {
+        "title": "Global Hisse Endeksleri",
+        "kicker": "Asya",
+        "caption": "Asya seansinin risk aktarimi.",
+        "rows": [("Nikkei 225", "NIKKEI"), ("Hang Seng", "HSI"), ("VIX", "VIX")],
+    },
+    {
+        "title": "Emtialar",
+        "kicker": "Metaller",
+        "caption": "Defansif ve endustriyel emtia akisi.",
+        "rows": [("Altin / oz", "GOLD"), ("Gumus / oz", "SILVER"), ("Bakir", "COPPER")],
+    },
+    {
+        "title": "Emtialar",
+        "kicker": "Enerji ve Tarim",
+        "caption": "Enflasyon ve buyume baskisinin hizli ozeti.",
+        "rows": [("Ham Petrol (WTI)", "OIL"), ("Dogalgaz", "NATGAS"), ("Bugday", "WHEAT")],
+    },
+    {
+        "title": "Doviz Kurlari",
+        "kicker": "Majors",
+        "caption": "Global dolar akisina karsi ana pariteler.",
+        "rows": [("EUR / USD", "EURUSD"), ("GBP / USD", "GBPUSD"), ("USD / JPY", "USDJPY")],
+    },
+    {
+        "title": "Doviz Kurlari",
+        "kicker": "Crosses",
+        "caption": "Yerel baski ve carry etkisi.",
+        "rows": [("USD / CHF", "USDCHF"), ("AUD / USD", "AUDUSD"), ("USD / TRY", "USDTRY")],
+    },
+    {
+        "title": "Makro ve Para Politikasi",
+        "kicker": "Core Macro",
+        "caption": "Likidite ve policy rejimini okuyan cekirdek set.",
+        "rows": [
+            ("FED Faizi", "FED"),
+            ("M2 YoY", "M2"),
+            ("ABD 10Y", "US10Y"),
+            ("DXY", "DXY"),
+            ("BTC <> SP500", "Corr_SP500"),
+            ("BTC <> Altin", "Corr_Gold"),
+        ],
+    },
+]
+
+FLOW_RISK_SECTIONS = [
+    {
+        "title": "Turev ve Sentiment",
+        "kicker": "Positioning Deck",
+        "caption": "Turev akis, leverage ve duygu teyidi.",
+        "rows": [
+            ("Open Interest", "OI"),
+            ("Funding Rate", "FR"),
+            ("Taker B/S", "Taker"),
+            ("L/S Orani", "LS_Ratio"),
+            ("Long %", "Long_Pct"),
+            ("Short %", "Short_Pct"),
+            ("L/S Sinyal", "LS_Signal"),
+            ("Korku / Acgozluluk", "FNG"),
+            ("FNG Dun", "FNG_PREV"),
+        ],
+    },
+    {
+        "title": "Order Book ve ETF",
+        "kicker": "Execution Levels",
+        "caption": "Destek/direnc ve ETF akisinin ayni masada okunmasi.",
+        "rows": [
+            ("Destek Duvari", "Sup_Wall"),
+            ("Destek Hacmi", "Sup_Vol"),
+            ("Direnc Duvari", "Res_Wall"),
+            ("Direnc Hacmi", "Res_Vol"),
+            ("Tahta Durumu", "Wall_Status"),
+            ("Birlesik Sinyal", "ORDERBOOK_SIGNAL"),
+            ("Birlesik Detay", "ORDERBOOK_SIGNAL_DETAIL"),
+            ("ETF Netflow", "ETF_FLOW_TOTAL"),
+            ("ETF Tarih", "ETF_FLOW_DATE"),
+            ("Kaynaklar", "ORDERBOOK_SOURCES"),
+        ],
+    },
+    {
+        "title": "Stablecoin ve On-Chain",
+        "kicker": "Liquidity Plumbing",
+        "caption": "Likidite rezervi ve zincir ustu aktivite.",
+        "rows": [
+            ("Toplam Stable", "Total_Stable"),
+            ("USDT", "USDT_MCap"),
+            ("USDC", "USDC_MCap"),
+            ("DAI", "DAI_MCap"),
+            ("Stable.C.D", "STABLE_C_D"),
+            ("USDT.D", "USDT_D"),
+            ("USDT.D Kaynak", "USDT_D_SOURCE"),
+            ("USDT Dominance", "USDT_Dom_Stable"),
+            ("Hashrate", "Hash"),
+            ("Aktif Adres (est.)", "Active"),
+        ],
+    },
+    {
+        "title": "Market Cap Breadth",
+        "kicker": "Breadth Layers",
+        "caption": "Sermayenin piyasa katmanlarina dagilimi.",
+        "rows": [
+            ("TOTAL", "TOTAL_CAP"),
+            ("TOTAL2", "TOTAL2_CAP"),
+            ("TOTAL3", "TOTAL3_CAP"),
+            ("OTHERS", "OTHERS_CAP"),
+            ("Kaynak", "TOTAL_CAP_SOURCE"),
+        ],
+    },
+]
+
+DATA_ATLAS_SECTIONS = [
+    {"title": "BTC ve Kripto", "rows": [("BTC Fiyati", "BTC_P"), ("BTC 24s", "BTC_C"), ("BTC 7g", "BTC_7D"), ("BTC MCap", "BTC_MCap"), ("24s Hacim", "Vol_24h"), ("BTC Dominance", "Dom"), ("ETH Dominance", "ETH_Dom"), ("Total MCap", "TOTAL_CAP"), ("Total Hacim", "Total_Vol")]},
+    {"title": "Turev ve Sentiment", "rows": [("OI", "OI"), ("Funding Rate", "FR"), ("Taker B/S", "Taker"), ("L/S Orani", "LS_Ratio"), ("Long %", "Long_Pct"), ("Short %", "Short_Pct"), ("L/S Sinyal", "LS_Signal"), ("Korku/Acgozluluk", "FNG"), ("FNG Dun", "FNG_PREV")]},
+    {"title": "Order Book ve ETF", "rows": [("Destek Duvari", "Sup_Wall"), ("Destek Hacmi", "Sup_Vol"), ("Direnc Duvari", "Res_Wall"), ("Direnc Hacmi", "Res_Vol"), ("Tahta Durumu", "Wall_Status"), ("Birlesik Sinyal", "ORDERBOOK_SIGNAL"), ("Birlesik Detay", "ORDERBOOK_SIGNAL_DETAIL"), ("Kaynaklar", "ORDERBOOK_SOURCES"), ("ETF Netflow", "ETF_FLOW_TOTAL"), ("ETF Tarih", "ETF_FLOW_DATE"), ("ETF Kaynak", "ETF_FLOW_SOURCE"), ("OKX Destek", "OKX_Sup_Wall")]},
+    {"title": "Market Cap Breadth", "rows": [("TOTAL", "TOTAL_CAP"), ("TOTAL2", "TOTAL2_CAP"), ("TOTAL3", "TOTAL3_CAP"), ("OTHERS", "OTHERS_CAP"), ("Kaynak", "TOTAL_CAP_SOURCE")]},
+    {"title": "Stablecoin ve On-Chain", "rows": [("Toplam Stable", "Total_Stable"), ("USDT", "USDT_MCap"), ("USDC", "USDC_MCap"), ("DAI", "DAI_MCap"), ("Stable.C.D", "STABLE_C_D"), ("USDT.D", "USDT_D"), ("USDT Dom Stable", "USDT_Dom_Stable"), ("Hashrate", "Hash"), ("Aktif Adres", "Active")]},
+    {"title": "Makro ve Para Politikasi", "rows": [("FED Faizi", "FED"), ("M2 YoY", "M2"), ("ABD 10Y", "US10Y"), ("DXY", "DXY"), ("VIX", "VIX"), ("BTC<>SP500", "Corr_SP500"), ("BTC<>Altin", "Corr_Gold")]},
+    {"title": "Endeksler ve Emtia", "rows": [("S&P 500", "SP500"), ("NASDAQ", "NASDAQ"), ("DAX", "DAX"), ("NIKKEI", "NIKKEI"), ("BIST100", "BIST100"), ("Altin", "GOLD"), ("Gumus", "SILVER"), ("Petrol", "OIL"), ("Dogalgaz", "NATGAS"), ("Bakir", "COPPER")]},
+    {"title": "Forex", "rows": [("EUR/USD", "EURUSD"), ("GBP/USD", "GBPUSD"), ("USD/JPY", "USDJPY"), ("USD/TRY", "USDTRY"), ("USD/CHF", "USDCHF"), ("AUD/USD", "AUDUSD")]},
+]
+
+
+def data_rows(data: dict, items):
+    return [(label, data.get(key, "-")) for label, key in items]
+
+
+def render_table_row(data: dict, sections: list[dict], cols: int):
+    columns = st.columns(cols)
+    for column, section in zip(columns, sections):
+        with column:
+            render_data_table_card(
+                section["title"],
+                data_rows(data, section["rows"]),
+                kicker=section.get("kicker", ""),
+                caption=section.get("caption", ""),
+            )
 
 
 def init_preferences():
@@ -606,9 +930,16 @@ def render_preferences_panel():
 
 
 def render_pinned_dashboard(data: dict, pinned_metrics: list[str]):
-    pinned_items = build_pinned_metrics(data, pinned_metrics)
+    pulse_items = [
+        ("BTC Spot", data.get("BTC_P", "-"), data.get("BTC_C", "")),
+        ("Funding", data.get("FR", "-"), ""),
+        ("Fear & Greed", data.get("FNG", "-"), ""),
+        ("USDT.D", data.get("USDT_D", "-"), ""),
+        ("ETF Netflow", data.get("ETF_FLOW_TOTAL", "-"), data.get("ETF_FLOW_DATE", "")),
+        ("VIX", data.get("VIX", "-"), data.get("VIX_C", "")),
+    ]
     cat("Market Pulse")
-    render_cards(pinned_items, cols=4)
+    render_cards(pulse_items, cols=6)
 
 
 def render_score_panel(analytics: dict):
@@ -770,9 +1101,14 @@ def render_news_tab(data: dict):
 
 
 def render_all_metrics_tab(data: dict):
-    st.subheader("Tum Metrikler")
-    rows = [(key, clean_text(value)) for key, value in data.items() if key not in {"_health", "NEWS"}]
-    st.dataframe(pd.DataFrame(rows, columns=["Metrik", "Deger"]), use_container_width=True, hide_index=True)
+    st.markdown("<div class='table-section-title'>Tum Metrikler - Ham Veri</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='table-section-copy'>Tum ana veri basinliklarini tek bir atlas icinde topladim; terminalin veri tabani burada gruplu sekilde okunuyor.</div>",
+        unsafe_allow_html=True,
+    )
+    render_table_row(data, DATA_ATLAS_SECTIONS[:4], 4)
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    render_table_row(data, DATA_ATLAS_SECTIONS[4:], 4)
 
 
 def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[dict]):
@@ -780,29 +1116,37 @@ def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[d
     with hero_col:
         st.markdown(
             f"""
-            <div class="surface">
-                <div class="panel-kicker">Primary Market</div>
-                <div class="panel-title">Bitcoin / USD</div>
-                <div class="spotlight-price">{clean_text(data.get('BTC_P', '-'))}</div>
-                <div class="panel-copy">
-                    Ana fiyat kutusu sadece calisma yuzeyi icin gerekli bilgiyi bir arada tutar.
+            <div class="deck-card">
+                <div class="panel-kicker">Market Overview</div>
+                <div class="deck-title">Bitcoin / USD</div>
+                <div class="spotlight-price">{display_value(data.get('BTC_P', '-'))}</div>
+                <div class="deck-copy">
+                    Macro regime, piyasa duyarliligi ve order book teyidini ayni bakista okutan ana calisma yuzeyi.
                 </div>
-                <div class="spotlight-meta">
-                    <div class="meta-tile">
-                        <span class="meta-tile-label">24 Saat</span>
-                        <span class="meta-tile-value">{clean_text(data.get('BTC_C', '-'))}</span>
+                <div class="deck-stats">
+                    <div class="deck-stat">
+                        <span class="deck-stat-label">24 Saat</span>
+                        <span class="deck-stat-value">{display_value(data.get('BTC_C', '-'))}</span>
                     </div>
-                    <div class="meta-tile">
-                        <span class="meta-tile-label">7 Gun</span>
-                        <span class="meta-tile-value">{clean_text(data.get('BTC_7D', '-'))}</span>
+                    <div class="deck-stat">
+                        <span class="deck-stat-label">7 Gun</span>
+                        <span class="deck-stat-value">{display_value(data.get('BTC_7D', '-'))}</span>
                     </div>
-                    <div class="meta-tile">
-                        <span class="meta-tile-label">Hacim</span>
-                        <span class="meta-tile-value">{clean_text(data.get('Vol_24h', '-'))}</span>
+                    <div class="deck-stat">
+                        <span class="deck-stat-label">Piyasa Degeri</span>
+                        <span class="deck-stat-value">{display_value(data.get('BTC_MCap', '-'))}</span>
                     </div>
-                    <div class="meta-tile">
-                        <span class="meta-tile-label">Piyasa Degeri</span>
-                        <span class="meta-tile-value">{clean_text(data.get('BTC_MCap', '-'))}</span>
+                    <div class="deck-stat">
+                        <span class="deck-stat-label">DXY</span>
+                        <span class="deck-stat-value">{display_value(data.get('DXY', '-'))}</span>
+                    </div>
+                    <div class="deck-stat">
+                        <span class="deck-stat-label">ETF Akisi</span>
+                        <span class="deck-stat-value">{display_value(data.get('ETF_FLOW_TOTAL', '-'))}</span>
+                    </div>
+                    <div class="deck-stat">
+                        <span class="deck-stat-label">USDT.D</span>
+                        <span class="deck-stat-value">{display_value(data.get('USDT_D', '-'))}</span>
                     </div>
                 </div>
             </div>
@@ -821,7 +1165,7 @@ def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[d
             ],
             badge_text=brief["focus"]["badge"],
             badge_kind=brief["focus"]["class"],
-            copy="Sag kolonu not ve takip listesi icin ayirdim; ana yuzeyde tekrar eden ozet kartlarini kaldirdim.",
+            copy="Sag kolon once rejimi, sonra likidite ve seviye teyidini verir. Veri eksiginde terminal bunu artik baglamsal olarak anlatir.",
         )
 
     st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
@@ -834,39 +1178,43 @@ def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[d
     with col_side:
         render_score_panel(analytics)
         st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
-        render_alert_panel(alerts)
+        render_data_table_card(
+            "Critical Tape",
+            [
+                ("Funding", data.get("FR", "-")),
+                ("L/S Orani", data.get("LS_Ratio", "-")),
+                ("Taker", data.get("Taker", "-")),
+                ("Birlesik Sinyal", data.get("ORDERBOOK_SIGNAL", "-")),
+                ("ETF Netflow", data.get("ETF_FLOW_TOTAL", "-")),
+                ("VIX", data.get("VIX", "-")),
+            ],
+            kicker="Signal Surface",
+            caption="Ana sayfadaki alarmlari cikardim; onun yerine karar destek sinyallerini bir control tape olarak birlestirdim.",
+        )
 
 
 def render_macro_tab(data: dict):
-    cat("Makro Para Politikasi")
-    render_cards(
-        [
-            ("FED", data.get("FED", "-"), ""),
-            ("M2 YoY", data.get("M2", "-"), ""),
-            ("US10Y", data.get("US10Y", "-"), data.get("US10Y_C", "")),
-            ("DXY", data.get("DXY", "-"), data.get("DXY_C", "")),
-            ("VIX", data.get("VIX", "-"), data.get("VIX_C", "")),
-            ("BTC-SP500", str(data.get("Corr_SP500", "-")), ""),
-            ("BTC-Gold", str(data.get("Corr_Gold", "-")), ""),
-            ("USD/TRY", data.get("USDTRY", "-"), data.get("USDTRY_C", "")),
-        ],
-        cols=4,
+    st.markdown("<div class='table-section-title'>Macro and Markets</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='table-section-copy'>Global equity, emtia, doviz ve policy setini bolgesel bir terminal akisi halinde yeniden kurdum.</div>",
+        unsafe_allow_html=True,
     )
-    st.markdown("<br>", unsafe_allow_html=True)
-    cat("Likidite ve Breadth")
-    render_cards(
-        [
-            ("ETF Netflow", data.get("ETF_FLOW_TOTAL", "-"), data.get("ETF_FLOW_DATE", "")),
-            ("USDT.D", data.get("USDT_D", "-"), ""),
-            ("Stable.C.D", data.get("STABLE_C_D", "-"), ""),
-            ("TOTAL", data.get("TOTAL_CAP", "-"), ""),
-            ("TOTAL2", data.get("TOTAL2_CAP", "-"), ""),
-            ("TOTAL3", data.get("TOTAL3_CAP", "-"), ""),
-            ("OTHERS", data.get("OTHERS_CAP", "-"), ""),
-            ("Total Stable", data.get("Total_Stable", "-"), ""),
-        ],
-        cols=4,
+    render_table_row(data, MACRO_MARKET_SECTIONS[:3], 3)
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    render_table_row(data, MACRO_MARKET_SECTIONS[3:5], 2)
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    render_table_row(data, MACRO_MARKET_SECTIONS[5:], 3)
+
+
+def render_flow_risk_tab(data: dict):
+    st.markdown("<div class='table-section-title'>Flow and Risk Surfaces</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='table-section-copy'>Turev, order book, ETF, stablecoin ve breadth katmanlarini ayri ayri ama tek tasarim sistemi icinde topladim.</div>",
+        unsafe_allow_html=True,
     )
+    render_table_row(data, FLOW_RISK_SECTIONS[:2], 2)
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    render_table_row(data, FLOW_RISK_SECTIONS[2:], 2)
 
 
 def render_report_tab(
@@ -903,6 +1251,8 @@ def render_report_tab(
         )
         st.divider()
         render_ai_report(client, data, report_depth)
+        st.divider()
+        render_alert_panel(alerts)
 
 
 init_preferences()
@@ -929,26 +1279,36 @@ render_sidebar(data, brief, last_updated, health_summary, preferences, alerts)
 render_pinned_dashboard(data, preferences.get("pinned_metrics", DEFAULT_PINNED_METRICS))
 
 if preferences.get("view_mode") == "Basit":
-    tabs = st.tabs(["Terminal", "Makro", "Strateji"])
+    tabs = st.tabs(
+        ["Bitcoin ve Kripto", "Makro ve Piyasalar", "Akis ve Risk", "Grafik ve Rapor", "Tum Metrikler"]
+    )
     with tabs[0]:
         render_overview_tab(data, brief, analytics, alerts)
     with tabs[1]:
         render_macro_tab(data)
     with tabs[2]:
-        render_report_tab(
-            client, data, brief, analytics, alerts, health_summary, preferences.get("report_depth", "Orta")
-        )
-else:
-    tabs = st.tabs(["Terminal", "Makro", "Strateji", "Haber Akisi", "Veri Tablosu"])
-    with tabs[0]:
-        render_overview_tab(data, brief, analytics, alerts)
-    with tabs[1]:
-        render_macro_tab(data)
-    with tabs[2]:
-        render_report_tab(
-            client, data, brief, analytics, alerts, health_summary, preferences.get("report_depth", "Orta")
-        )
+        render_flow_risk_tab(data)
     with tabs[3]:
-        render_news_tab(data)
+        render_report_tab(
+            client, data, brief, analytics, alerts, health_summary, preferences.get("report_depth", "Orta")
+        )
     with tabs[4]:
+        render_all_metrics_tab(data)
+else:
+    tabs = st.tabs(
+        ["Bitcoin ve Kripto", "Makro ve Piyasalar", "Akis ve Risk", "Grafik ve Rapor", "Haberler", "Tum Metrikler"]
+    )
+    with tabs[0]:
+        render_overview_tab(data, brief, analytics, alerts)
+    with tabs[1]:
+        render_macro_tab(data)
+    with tabs[2]:
+        render_flow_risk_tab(data)
+    with tabs[3]:
+        render_report_tab(
+            client, data, brief, analytics, alerts, health_summary, preferences.get("report_depth", "Orta")
+        )
+    with tabs[4]:
+        render_news_tab(data)
+    with tabs[5]:
         render_all_metrics_tab(data)
