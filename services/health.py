@@ -79,11 +79,11 @@ def is_stale(entry: dict, now: datetime | None = None) -> bool:
 def merge_source_health(previous: dict[str, dict] | None, latest: dict[str, dict] | None) -> dict[str, dict]:
     previous = previous or {}
     latest = latest or {}
-    merged = {key: dict(value) for key, value in previous.items()}
+    merged: dict[str, dict] = {}
     now = datetime.now(timezone.utc)
 
     for source, entry in latest.items():
-        merged_entry = dict(merged.get(source, {}))
+        merged_entry = dict(previous.get(source, {}))
         merged_entry.update(entry)
         merged_entry["source"] = source
         merged_entry["stale_after_seconds"] = (
@@ -93,15 +93,14 @@ def merge_source_health(previous: dict[str, dict] | None, latest: dict[str, dict
         )
 
         if entry.get("ok"):
-            merged_entry["last_success_at"] = entry.get("last_success_at") or entry.get("fetched_at")
+            merged_entry["last_success_at"] = (
+                entry.get("last_success_at") or entry.get("fetched_at") or previous.get(source, {}).get("last_success_at")
+            )
         else:
-            merged_entry["last_success_at"] = merged.get(source, {}).get("last_success_at")
+            merged_entry["last_success_at"] = entry.get("last_success_at") or previous.get(source, {}).get("last_success_at")
 
         merged_entry["stale"] = is_stale(merged_entry, now)
         merged[source] = merged_entry
-
-    for source, entry in merged.items():
-        entry["stale"] = is_stale(entry, now)
 
     return merged
 
