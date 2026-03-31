@@ -112,6 +112,23 @@ def _factor_trend_text(delta_7d: int) -> str:
     return "Dengeleniyor"
 
 
+def _confidence_score(metrics: list[dict]) -> int:
+    if not metrics:
+        return 0
+    available = sum(1 for metric in metrics if metric.get("display") not in {PLACEHOLDER, "", None})
+    return clamp_score((available / len(metrics)) * 100)
+
+
+def _confidence_label(score: int) -> str:
+    if score >= 80:
+        return "High confidence"
+    if score >= 60:
+        return "Moderate confidence"
+    if score >= 40:
+        return "Guarded confidence"
+    return "Low confidence"
+
+
 def _build_liquidity_factor(data: dict) -> dict:
     dxy = parse_number(data.get("DXY"))
     dxy_change = parse_number(data.get("DXY_C"))
@@ -380,6 +397,10 @@ def build_regime_scores(data: dict) -> dict:
         factor["contribution"] = round(factor["score"] * factor["weight"], 1)
         factor["weight_pct"] = int(round(factor["weight"] * 100))
         factor["trend_text"] = _factor_trend_text(factor["delta_7d"])
+        factor["confidence"] = _confidence_score(factor["metrics"])
+        factor["confidence_label"] = _confidence_label(factor["confidence"])
+        factor["primary_support"] = max(factor["metrics"], key=lambda item: item["score"])["label"]
+        factor["primary_risk"] = min(factor["metrics"], key=lambda item: item["score"])["label"]
 
     base_score = clamp_score(sum(factor["contribution"] for factor in factors.values()))
     fragility = _build_fragility(factors, data)
@@ -402,6 +423,40 @@ def build_regime_scores(data: dict) -> dict:
     else:
         overlay = regime_band
 
+    confidence = clamp_score(
+        sum(factor["confidence"] * factor["weight"] for factor in factors.values())
+    )
+    if overall >= 75 and fragility["score"] <= 40:
+        bias = "Risk alimi destekleniyor; momentum genis tabanli kaliyor."
+    elif overall >= 60 and fragility["score"] <= 60:
+        bias = "Risk-on korunabilir ama pozisyon boyutlari secici tutulmali."
+    elif overall >= 60:
+        bias = "Yapici rejim var ancak crowding ve vol nedeniyle taktik kalmak gerekiyor."
+    elif overall >= 45:
+        bias = "Kararsiz rejim; teyit gelmeden agresif pozisyon almak icin erken."
+    elif factors["liquidity"]["delta_7d"] > 2:
+        bias = "Savunmaci kal ama likidite iyilesmesini yakindan izle."
+    else:
+        bias = "Savunmaci durus daha dogru; internaller net sekilde toparlanmadi."
+
+    invalidate_conditions = []
+    if factors["breadth"]["score"] < 55:
+        invalidate_conditions.append("Breadth 45 altinda kalirsa risk-on tezi zayiflar.")
+    if factors["volatility"]["score"] < 55:
+        invalidate_conditions.append(f"VIX {data.get('VIX', PLACEHOLDER)} uzerinde yukselmeye devam ederse stres artar.")
+    if factors["positioning"]["score"] < 50:
+        invalidate_conditions.append("Funding, L/S ve taker tek yone daha fazla yigilirsa crowding artar.")
+    if factors["liquidity"]["score"] < 55:
+        invalidate_conditions.append("ETF akisi zayiflar ve DXY sert yukselirse likidite desteği kaybolur.")
+    if not invalidate_conditions:
+        invalidate_conditions.append("Belirgin invalidate kosulu yok; mevcut rejim saglikli gorunuyor.")
+
+    watch_next = [
+        f"ETF akisi {data.get('ETF_FLOW_TOTAL', PLACEHOLDER)} ve DXY {data.get('DXY', PLACEHOLDER)}",
+        f"Funding {data.get('FR', PLACEHOLDER)} | L/S {data.get('LS_Ratio', PLACEHOLDER)} | Taker {data.get('Taker', PLACEHOLDER)}",
+        f"Breadth TOTAL3 {data.get('TOTAL3_CAP', PLACEHOLDER)} | VIX {data.get('VIX', PLACEHOLDER)}",
+    ]
+
     return {
         "overall": overall,
         "base_score": base_score,
@@ -412,6 +467,11 @@ def build_regime_scores(data: dict) -> dict:
         "dominant_driver": dominant_driver["label"],
         "weakest_driver": weakest_driver["label"],
         "summary": f"{dominant_driver['label']} rejimi tasiyor, {weakest_driver['label']} ise en zayif halka.",
+        "confidence": confidence,
+        "confidence_label": _confidence_label(confidence),
+        "bias": bias,
+        "invalidate_conditions": invalidate_conditions[:3],
+        "watch_next": watch_next,
         "subscores": {
             "Liquidity": factors["liquidity"]["score"],
             "Volatility": factors["volatility"]["score"],
