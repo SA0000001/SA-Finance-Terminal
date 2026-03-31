@@ -1728,17 +1728,15 @@ def veri_motoru(fred_api_key=""):
 
 
 def load_terminal_data(fred_api_key=""):
-    payloads = _run_parallel_tasks(
-        {
-            "base": lambda: veri_motoru(fred_api_key),
-            "derivatives": turev_cek,
-            "market_cap": fetch_live_market_cap_segments,
-        },
-        max_workers=3,
-    )
+    task_map = {
+        "base": lambda: veri_motoru(fred_api_key),
+        "derivatives": turev_cek,
+        "market_cap": fetch_live_market_cap_segments,
+    }
+    payloads = _run_parallel_tasks(task_map, max_workers=3)
     normalized_payloads = [
-        payload if not isinstance(payload, Exception) else _task_failure_payload(task_name, payload)
-        for task_name, payload in payloads.items()
+        payloads[task_name] if not isinstance(payloads[task_name], Exception) else _task_failure_payload(task_name, payloads[task_name])
+        for task_name in ("base", "market_cap", "derivatives")
     ]
     data = _merge_result_payloads(*normalized_payloads)
     if data.get("Total_Stable_Num") and data.get("TOTAL_CAP_NUM"):
@@ -1801,7 +1799,7 @@ def turev_cek():
     try:
         taker_response = safe_fetch_json(
             "OKX Taker Volume",
-            "https://www.okx.com/api/v5/rubik/stat/taker-volume?ccy=BTC&instType=contracts&period=1H",
+            "https://www.okx.com/api/v5/rubik/stat/taker-volume?ccy=BTC&instType=CONTRACTS&period=1H",
             timeout=6,
             headers=HEADERS,
         )
