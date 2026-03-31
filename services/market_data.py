@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import re
 import time
 
@@ -18,6 +19,10 @@ PLACEHOLDER = "â€”"
 TEXT_ACCEPT = "text/plain, text/markdown, */*"
 DATA_PARSE_EXCEPTIONS = (KeyError, TypeError, ValueError, IndexError, ZeroDivisionError)
 YFINANCE_EXCEPTIONS = (KeyError, TypeError, ValueError, IndexError, requests.RequestException)
+FAST_TTL = 30
+MARKET_TTL = 300
+SENTIMENT_TTL = 1800
+MACRO_TTL = 21600
 
 
 def _latency_ms(started_at: float) -> float:
@@ -34,6 +39,37 @@ def _merge_health_maps(*maps: dict[str, dict] | None) -> dict[str, dict]:
         if health_map:
             merged.update(health_map)
     return merged
+
+
+def _merge_result_payloads(*payloads: dict | None) -> dict:
+    merged = {}
+    merged_health = {}
+    for payload in payloads:
+        if not payload or isinstance(payload, Exception):
+            continue
+        payload_data = dict(payload)
+        payload_health = payload_data.pop("_health", {})
+        merged.update(payload_data)
+        merged_health = _merge_health_maps(merged_health, payload_health)
+    if merged_health:
+        merged["_health"] = merged_health
+    return merged
+
+
+def _run_parallel_tasks(task_map: dict[str, object], *, max_workers: int = 4) -> dict[str, object]:
+    if not task_map:
+        return {}
+
+    results = {}
+    with ThreadPoolExecutor(max_workers=min(max_workers, len(task_map))) as executor:
+        future_map = {executor.submit(task): name for name, task in task_map.items()}
+        for future in as_completed(future_map):
+            name = future_map[future]
+            try:
+                results[name] = future.result()
+            except Exception as exc:
+                results[name] = exc
+    return results
 
 
 def _record_fetch_error(recorder: HealthRecorder, source: str, exc: FetchError, *, stale_after_seconds: int | None = None):
@@ -140,31 +176,40 @@ def parse_tradingview_market_cap(text):
 def _load_yfinance_etfs(target: dict, recorder: HealthRecorder):
     source = "yFinance ETFs"
     started_at = time.perf_counter()
-    successes = 0
     failures = []
 
-    for sym in ["IBIT", "FBTC", "BITB", "ARKB"]:
-        try:
-            history, _ = _history_with_latency(sym, period="10d")
-            if history.empty or len(history.index) < 2:
-                raise ValueError(f"{sym} history is empty")
+    def fetch_symbol(sym: str):
+        history, _ = _history_with_latency(sym, period="10d")
+        if history.empty or len(history.index) < 2:
+            raise ValueError(f"{sym} history is empty")
 
-            curr = float(history["Close"].iloc[-1])
-            prev = float(history["Close"].iloc[-2])
-            target[f"{sym}_P"] = f"${curr:.2f}"
-            target[f"{sym}_C"] = f"{(curr - prev) / prev * 100:.2f}%"
-            target[f"{sym}_Vol"] = f"{int(history['Volume'].iloc[-1]):,}"
-            successes += 1
-        except YFINANCE_EXCEPTIONS as exc:
-            failures.append(f"{sym}: {exc}")
-            _set_defaults(
-                target,
-                {
-                    f"{sym}_P": PLACEHOLDER,
-                    f"{sym}_C": PLACEHOLDER,
-                    f"{sym}_Vol": PLACEHOLDER,
-                },
-            )
+        curr = float(history["Close"].iloc[-1])
+        prev = float(history["Close"].iloc[-2])
+        return {
+            f"{sym}_P": f"${curr:.2f}",
+            f"{sym}_C": f"{(curr - prev) / prev * 100:.2f}%",
+            f"{sym}_Vol": f"{int(history['Volume'].iloc[-1]):,}",
+        }
+
+    symbol_map = {sym: (lambda symbol=sym: fetch_symbol(symbol)) for sym in ["IBIT", "FBTC", "BITB", "ARKB"]}
+    successes = 0
+    with ThreadPoolExecutor(max_workers=min(4, len(symbol_map))) as executor:
+        future_map = {executor.submit(task): sym for sym, task in symbol_map.items()}
+        for future in as_completed(future_map):
+            sym = future_map[future]
+            try:
+                target.update(future.result())
+                successes += 1
+            except YFINANCE_EXCEPTIONS as exc:
+                failures.append(f"{sym}: {exc}")
+                _set_defaults(
+                    target,
+                    {
+                        f"{sym}_P": PLACEHOLDER,
+                        f"{sym}_C": PLACEHOLDER,
+                        f"{sym}_Vol": PLACEHOLDER,
+                    },
+                )
 
     latency = _latency_ms(started_at)
     if successes:
@@ -175,29 +220,40 @@ def _load_yfinance_etfs(target: dict, recorder: HealthRecorder):
 
 def _load_yfinance_change_group(target: dict, recorder: HealthRecorder, source: str, symbols: dict[str, str], *, period: str, value_template: str):
     started_at = time.perf_counter()
-    successes = 0
     failures = []
 
-    for key, sym in symbols.items():
-        try:
-            history, _ = _history_with_latency(sym, period=period)
-            if history.empty or len(history.index) < 2:
-                raise ValueError(f"{key} history is empty")
+    def fetch_symbol(key: str, sym: str):
+        history, _ = _history_with_latency(sym, period=period)
+        if history.empty or len(history.index) < 2:
+            raise ValueError(f"{key} history is empty")
 
-            curr = float(history["Close"].iloc[-1])
-            prev = float(history["Close"].iloc[-2])
-            target[key] = value_template.format(value=curr)
-            target[f"{key}_C"] = f"{(curr - prev) / prev * 100:.2f}%"
-            successes += 1
-        except YFINANCE_EXCEPTIONS as exc:
-            failures.append(f"{key}: {exc}")
-            _set_defaults(
-                target,
-                {
-                    key: PLACEHOLDER,
-                    f"{key}_C": PLACEHOLDER,
-                },
-            )
+        curr = float(history["Close"].iloc[-1])
+        prev = float(history["Close"].iloc[-2])
+        return {
+            key: value_template.format(value=curr),
+            f"{key}_C": f"{(curr - prev) / prev * 100:.2f}%",
+        }
+
+    successes = 0
+    with ThreadPoolExecutor(max_workers=min(6, len(symbols))) as executor:
+        future_map = {
+            executor.submit(lambda key=key, sym=sym: fetch_symbol(key, sym)): key
+            for key, sym in symbols.items()
+        }
+        for future in as_completed(future_map):
+            key = future_map[future]
+            try:
+                target.update(future.result())
+                successes += 1
+            except YFINANCE_EXCEPTIONS as exc:
+                failures.append(f"{key}: {exc}")
+                _set_defaults(
+                    target,
+                    {
+                        key: PLACEHOLDER,
+                        f"{key}_C": PLACEHOLDER,
+                    },
+                )
 
     latency = _latency_ms(started_at)
     if successes:
@@ -236,7 +292,7 @@ def _load_fred_series(*, series_id: str, api_key: str, limit: int, source: str):
     return safe_fetch_json(source, url, timeout=6)
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=FAST_TTL)
 def fetch_live_usdt_d():
     health = HealthRecorder()
     result = {"USDT_D": PLACEHOLDER, "USDT_D_SOURCE": PLACEHOLDER}
@@ -309,18 +365,29 @@ def fetch_live_usdt_d():
     global_response = None
     ticker_response = None
     try:
-        global_response = safe_fetch_json(
-            "Coinpaprika Global",
-            "https://api.coinpaprika.com/v1/global",
-            timeout=6,
-            headers=HEADERS,
+        coinpaprika_results = _run_parallel_tasks(
+            {
+                "global": lambda: safe_fetch_json(
+                    "Coinpaprika Global",
+                    "https://api.coinpaprika.com/v1/global",
+                    timeout=6,
+                    headers=HEADERS,
+                ),
+                "usdt": lambda: safe_fetch_json(
+                    "Coinpaprika USDT",
+                    "https://api.coinpaprika.com/v1/tickers/usdt-tether",
+                    timeout=6,
+                    headers=HEADERS,
+                ),
+            },
+            max_workers=2,
         )
-        ticker_response = safe_fetch_json(
-            "Coinpaprika USDT",
-            "https://api.coinpaprika.com/v1/tickers/usdt-tether",
-            timeout=6,
-            headers=HEADERS,
-        )
+        global_response = coinpaprika_results["global"]
+        ticker_response = coinpaprika_results["usdt"]
+        if isinstance(global_response, Exception):
+            raise global_response
+        if isinstance(ticker_response, Exception):
+            raise ticker_response
         total_market_cap = float(global_response.payload["market_cap_usd"])
         usdt_market_cap = float(ticker_response.payload["quotes"]["USD"]["market_cap"])
         result = {
@@ -339,7 +406,7 @@ def fetch_live_usdt_d():
     return result
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=FAST_TTL)
 def fetch_live_market_cap_segments():
     health = HealthRecorder()
     symbols = {
@@ -363,14 +430,25 @@ def fetch_live_market_cap_segments():
     tradingview_started_at = time.perf_counter()
     tradingview_parsed = {}
     tradingview_failures = []
-    for key, url in symbols.items():
-        try:
-            response = safe_fetch_text("TradingView Market Cap", url, timeout=20, headers=HEADERS, accept=TEXT_ACCEPT)
-            tradingview_parsed[key] = parse_tradingview_market_cap(response.payload)
-        except FetchError as exc:
-            tradingview_failures.append(str(exc))
-        except (TypeError, ValueError) as exc:
-            tradingview_failures.append(_error_message("Parse error", exc))
+    with ThreadPoolExecutor(max_workers=min(4, len(symbols))) as executor:
+        future_map = {
+            executor.submit(
+                lambda key=key, url=url: (
+                    key,
+                    safe_fetch_text("TradingView Market Cap", url, timeout=20, headers=HEADERS, accept=TEXT_ACCEPT),
+                )
+            ): key
+            for key, url in symbols.items()
+        }
+        for future in as_completed(future_map):
+            key = future_map[future]
+            try:
+                _, response = future.result()
+                tradingview_parsed[key] = parse_tradingview_market_cap(response.payload)
+            except FetchError as exc:
+                tradingview_failures.append(str(exc))
+            except (TypeError, ValueError) as exc:
+                tradingview_failures.append(_error_message("Parse error", exc))
 
     if len(tradingview_parsed) == len(symbols):
         latency = _latency_ms(tradingview_started_at)
@@ -399,18 +477,29 @@ def fetch_live_market_cap_segments():
     global_response = None
     top10_response = None
     try:
-        global_response = safe_fetch_json(
-            "CoinGecko Global",
-            "https://api.coingecko.com/api/v3/global",
-            timeout=6,
-            headers=HEADERS,
+        coingecko_results = _run_parallel_tasks(
+            {
+                "global": lambda: safe_fetch_json(
+                    "CoinGecko Global",
+                    "https://api.coingecko.com/api/v3/global",
+                    timeout=6,
+                    headers=HEADERS,
+                ),
+                "top10": lambda: safe_fetch_json(
+                    "CoinGecko Top10",
+                    "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false",
+                    timeout=8,
+                    headers=HEADERS,
+                ),
+            },
+            max_workers=2,
         )
-        top10_response = safe_fetch_json(
-            "CoinGecko Top10",
-            "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false",
-            timeout=8,
-            headers=HEADERS,
-        )
+        global_response = coingecko_results["global"]
+        top10_response = coingecko_results["top10"]
+        if isinstance(global_response, Exception):
+            raise global_response
+        if isinstance(top10_response, Exception):
+            raise top10_response
         global_data = global_response.payload["data"]
         total_cap_num = float(global_data["total_market_cap"]["usd"])
         btc_d = float(global_data["market_cap_percentage"].get("btc", 0))
@@ -444,7 +533,7 @@ def fetch_live_market_cap_segments():
 
 
 @st.cache_data(ttl=180)
-def veri_motoru(fred_api_key=""):
+def _legacy_veri_motoru(fred_api_key=""):
     data = {}
     health = HealthRecorder()
 
@@ -1013,6 +1102,389 @@ def veri_motoru(fred_api_key=""):
     return data
 
 
+@st.cache_data(ttl=MARKET_TTL)
+def _fetch_market_snapshot():
+    data = {}
+    health = HealthRecorder()
+
+    btc_response = None
+    try:
+        btc_response = safe_fetch_json("Coinpaprika BTC", "https://api.coinpaprika.com/v1/tickers/btc-bitcoin", timeout=8, headers=HEADERS)
+        usd_quote = btc_response.payload["quotes"]["USD"]
+        data["BTC_P"] = f"${usd_quote['price']:,.0f}"
+        data["BTC_C"] = f"{usd_quote['percent_change_24h']:.2f}%"
+        data["BTC_7D"] = f"{usd_quote['percent_change_7d']:.2f}%"
+        data["Vol_24h"] = f"${usd_quote['volume_24h']:,.0f}"
+        data["BTC_MCap"] = f"${usd_quote['market_cap']/1e9:.0f}B"
+        health.success("Coinpaprika BTC", btc_response.latency_ms)
+    except FetchError as exc:
+        _record_fetch_error(health, "Coinpaprika BTC", exc)
+        _set_defaults(data, {"BTC_P": PLACEHOLDER, "BTC_C": PLACEHOLDER, "BTC_7D": PLACEHOLDER, "Vol_24h": PLACEHOLDER, "BTC_MCap": PLACEHOLDER})
+    except DATA_PARSE_EXCEPTIONS as exc:
+        _record_parse_error(health, "Coinpaprika BTC", exc, latency_ms=btc_response.latency_ms if btc_response else None)
+        _set_defaults(data, {"BTC_P": PLACEHOLDER, "BTC_C": PLACEHOLDER, "BTC_7D": PLACEHOLDER, "Vol_24h": PLACEHOLDER, "BTC_MCap": PLACEHOLDER})
+
+    alt_ids = {
+        "ETH": "eth-ethereum",
+        "SOL": "sol-solana",
+        "BNB": "bnb-binance-coin",
+        "XRP": "xrp-xrp",
+        "ADA": "ada-cardano",
+        "AVAX": "avax-avalanche",
+        "DOT": "dot-polkadot",
+        "LINK": "link-chainlink",
+    }
+    alt_started_at = time.perf_counter()
+    alt_successes = 0
+    alt_failures = []
+    with ThreadPoolExecutor(max_workers=min(6, len(alt_ids))) as executor:
+        future_map = {
+            executor.submit(
+                lambda sym=sym, cid=cid: (
+                    sym,
+                    safe_fetch_json("Coinpaprika Altcoins", f"https://api.coinpaprika.com/v1/tickers/{cid}", timeout=6, headers=HEADERS),
+                )
+            ): sym
+            for sym, cid in alt_ids.items()
+        }
+        for future in as_completed(future_map):
+            sym = future_map[future]
+            try:
+                _, response = future.result()
+                usd_quote = response.payload["quotes"]["USD"]
+                data[f"{sym}_P"] = f"${usd_quote['price']:,.2f}"
+                data[f"{sym}_C"] = f"{usd_quote['percent_change_24h']:.2f}%"
+                data[f"{sym}_7D"] = f"{usd_quote['percent_change_7d']:.2f}%"
+                alt_successes += 1
+            except FetchError as exc:
+                alt_failures.append(f"{sym}: {exc}")
+                _set_defaults(data, {f"{sym}_P": PLACEHOLDER, f"{sym}_C": PLACEHOLDER, f"{sym}_7D": PLACEHOLDER})
+            except DATA_PARSE_EXCEPTIONS as exc:
+                alt_failures.append(f"{sym}: {_error_message('Parse error', exc)}")
+                _set_defaults(data, {f"{sym}_P": PLACEHOLDER, f"{sym}_C": PLACEHOLDER, f"{sym}_7D": PLACEHOLDER})
+
+    alt_latency = _latency_ms(alt_started_at)
+    if alt_successes:
+        health.success("Coinpaprika Altcoins", alt_latency)
+    else:
+        health.failure("Coinpaprika Altcoins", "; ".join(alt_failures) or "No altcoin data", alt_latency)
+
+    global_response = None
+    try:
+        global_response = safe_fetch_json("Coinpaprika Global", "https://api.coinpaprika.com/v1/global", timeout=6, headers=HEADERS)
+        payload = global_response.payload
+        data["Total_MCap_Num"] = payload["market_cap_usd"]
+        data["Dom"] = f"%{payload['bitcoin_dominance_percentage']:.2f}"
+        data["Total_MCap"] = f"${payload['market_cap_usd']/1e12:.2f}T"
+        data["Total_Vol"] = f"${payload['volume_24h_usd']/1e9:.1f}B"
+        health.success("Coinpaprika Global", global_response.latency_ms)
+    except FetchError as exc:
+        _record_fetch_error(health, "Coinpaprika Global", exc)
+        _set_defaults(data, {"Dom": PLACEHOLDER, "Total_MCap": PLACEHOLDER, "Total_Vol": PLACEHOLDER, "Total_MCap_Num": None})
+    except DATA_PARSE_EXCEPTIONS as exc:
+        _record_parse_error(health, "Coinpaprika Global", exc, latency_ms=global_response.latency_ms if global_response else None)
+        _set_defaults(data, {"Dom": PLACEHOLDER, "Total_MCap": PLACEHOLDER, "Total_Vol": PLACEHOLDER, "Total_MCap_Num": None})
+
+    eth_dom_response = None
+    try:
+        eth_dom_response = safe_fetch_json("Coinpaprika ETH Dominance", "https://api.coinpaprika.com/v1/tickers/eth-ethereum", timeout=5, headers=HEADERS)
+        dom_val = float(data["Dom"].replace("%", "")) if data.get("Dom") != PLACEHOLDER else 0
+        btc_mc = float(data["BTC_MCap"].replace("$", "").replace("B", "")) * 1e9 if data.get("BTC_MCap") != PLACEHOLDER else 0
+        total_mc = btc_mc / (dom_val / 100) if dom_val > 0 else 0
+        if total_mc > 0:
+            data["ETH_Dom"] = f"%{float(eth_dom_response.payload['quotes']['USD']['market_cap'])/total_mc*100:.2f}"
+        else:
+            data["ETH_Dom"] = PLACEHOLDER
+        health.success("Coinpaprika ETH Dominance", eth_dom_response.latency_ms)
+    except FetchError as exc:
+        _record_fetch_error(health, "Coinpaprika ETH Dominance", exc)
+        data["ETH_Dom"] = PLACEHOLDER
+    except DATA_PARSE_EXCEPTIONS as exc:
+        _record_parse_error(health, "Coinpaprika ETH Dominance", exc, latency_ms=eth_dom_response.latency_ms if eth_dom_response else None)
+        data["ETH_Dom"] = PLACEHOLDER
+
+    yfinance_tasks = {
+        "etfs": lambda: _load_yfinance_etfs(data, health),
+        "indices": lambda: _load_yfinance_change_group(data, health, "yFinance Indices", {"SP500": "^GSPC", "NASDAQ": "^IXIC", "DOW": "^DJI", "DAX": "^GDAXI", "FTSE": "^FTSE", "NIKKEI": "^N225", "HSI": "^HSI", "BIST100": "XU100.IS", "VIX": "^VIX"}, period="5d", value_template="{value:,.2f}"),
+        "commodities": lambda: _load_yfinance_change_group(data, health, "yFinance Commodities", {"GOLD": "GC=F", "SILVER": "SI=F", "OIL": "CL=F", "NATGAS": "NG=F", "COPPER": "HG=F", "WHEAT": "ZW=F"}, period="5d", value_template="${value:,.2f}"),
+        "fx": lambda: _load_yfinance_change_group(data, health, "yFinance FX", {"DXY": "DX-Y.NYB", "EURUSD": "EURUSD=X", "GBPUSD": "GBPUSD=X", "USDJPY": "JPY=X", "USDTRY": "TRY=X", "USDCHF": "CHF=X", "AUDUSD": "AUDUSD=X", "US10Y": "^TNX"}, period="5d", value_template="{value:.4f}"),
+    }
+    _run_parallel_tasks(yfinance_tasks, max_workers=4)
+
+    correlation_payload = None
+    correlation_latency = None
+    try:
+        correlation_payload, correlation_latency = _download_with_latency(["BTC-USD", "^GSPC", "GC=F"], period="30d")
+        closes = correlation_payload["Close"]
+        if closes.empty:
+            raise ValueError("correlation series is empty")
+        correlation_matrix = closes.corr()
+        data["Corr_SP500"] = round(correlation_matrix.loc["BTC-USD", "^GSPC"], 2)
+        data["Corr_Gold"] = round(correlation_matrix.loc["BTC-USD", "GC=F"], 2)
+        health.success("yFinance Correlation", correlation_latency)
+    except YFINANCE_EXCEPTIONS as exc:
+        health.failure("yFinance Correlation", str(exc), correlation_latency)
+        data["Corr_SP500"] = PLACEHOLDER
+        data["Corr_Gold"] = PLACEHOLDER
+
+    for symbol in ETF_FLOW_COLUMNS:
+        data[f"ETF_FLOW_{symbol}"] = PLACEHOLDER
+    data["ETF_FLOW_DATE"] = PLACEHOLDER
+    data["ETF_FLOW_SOURCE"] = PLACEHOLDER
+    flow_failures = []
+    for flow_url in ["https://r.jina.ai/http://farside.co.uk/bitcoin-etf-flow-all-data/", "https://r.jina.ai/http://farside.co.uk/btc/", "https://farside.co.uk/bitcoin-etf-flow-all-data/"]:
+        try:
+            response = safe_fetch_text("Farside ETF Flow", flow_url, timeout=20, headers=HEADERS, accept=TEXT_ACCEPT)
+            latest_row = parse_latest_etf_flow_row(response.payload)
+            if not latest_row:
+                raise ValueError("No populated ETF flow row found")
+            data["ETF_FLOW_DATE"] = latest_row[0]
+            for symbol, raw_value in zip(ETF_FLOW_COLUMNS, latest_row[1]):
+                data[f"ETF_FLOW_{symbol}"] = format_flow_millions(raw_value)
+            data["ETF_FLOW_SOURCE"] = "Farside"
+            health.success("Farside ETF Flow", response.latency_ms, stale_after_seconds=43200)
+            break
+        except FetchError as exc:
+            flow_failures.append(str(exc))
+        except (TypeError, ValueError) as exc:
+            flow_failures.append(_error_message("Parse error", exc))
+    else:
+        health.failure("Farside ETF Flow", "; ".join(flow_failures) or "ETF flow source unavailable", stale_after_seconds=43200)
+
+    data["_health"] = health.export()
+    return data
+
+
+@st.cache_data(ttl=FAST_TTL)
+def _fetch_orderbook_snapshot():
+    data = {}
+    health = HealthRecorder()
+    _run_parallel_tasks(
+        {
+            "kraken": lambda: _load_orderbook_source(data, health, source="Kraken Order Book", prefix="", url="https://api.kraken.com/0/public/Depth?pair=XBTUSD&count=500", bid_getter=lambda payload: payload["result"][list(payload["result"].keys())[0]]["bids"], ask_getter=lambda payload: payload["result"][list(payload["result"].keys())[0]]["asks"]),
+            "okx": lambda: _load_orderbook_source(data, health, source="OKX Order Book", prefix="OKX", url="https://www.okx.com/api/v5/market/books?instId=BTC-USDT&sz=400", bid_getter=lambda payload: payload["data"][0]["bids"], ask_getter=lambda payload: payload["data"][0]["asks"]),
+            "kucoin": lambda: _load_orderbook_source(data, health, source="KuCoin Order Book", prefix="KUCOIN", url="https://api.kucoin.com/api/v1/market/orderbook/level2_100?symbol=BTC-USDT", bid_getter=lambda payload: payload["data"]["bids"], ask_getter=lambda payload: payload["data"]["asks"]),
+            "gate": lambda: _load_orderbook_source(data, health, source="Gate.io Order Book", prefix="GATE", url="https://api.gateio.ws/api/v4/spot/order_book?currency_pair=BTC_USDT&limit=200&with_id=true", bid_getter=lambda payload: payload["bids"], ask_getter=lambda payload: payload["asks"]),
+            "coinbase": lambda: _load_orderbook_source(data, health, source="Coinbase Order Book", prefix="COINBASE", url="https://api.exchange.coinbase.com/products/BTC-USD/book?level=2", bid_getter=lambda payload: payload["bids"], ask_getter=lambda payload: payload["asks"]),
+        },
+        max_workers=5,
+    )
+    signal = build_orderbook_signal(data)
+    data["ORDERBOOK_SIGNAL"] = signal["title"]
+    data["ORDERBOOK_SIGNAL_DETAIL"] = signal["detail"]
+    data["ORDERBOOK_SIGNAL_BADGE"] = signal["badge"]
+    data["ORDERBOOK_SIGNAL_CLASS"] = signal["class"]
+    data["ORDERBOOK_SOURCES"] = "Kraken Â· OKX Â· KuCoin Â· Gate.io Â· Coinbase"
+    data["_health"] = health.export()
+    return data
+
+
+@st.cache_data(ttl=MACRO_TTL)
+def _fetch_stablecoin_snapshot():
+    data = {}
+    health = HealthRecorder()
+    stablecoin_response = None
+    try:
+        stablecoin_response = safe_fetch_json("DeFiLlama Stablecoins", "https://stablecoins.llama.fi/stablecoins?includePrices=true", timeout=8, headers=HEADERS)
+        pegged_assets = stablecoin_response.payload["peggedAssets"]
+        total = sum(item.get("circulating", {}).get("peggedUSD", 0) for item in pegged_assets)
+
+        def stablecoin_cap(symbol):
+            coin = next((item for item in pegged_assets if item["symbol"].upper() == symbol), None)
+            return coin["circulating"]["peggedUSD"] if coin else 0
+
+        usdt_cap = stablecoin_cap("USDT")
+        usdc_cap = stablecoin_cap("USDC")
+        dai_cap = stablecoin_cap("DAI")
+        data["Total_Stable_Num"] = total
+        data["Total_Stable"] = f"${total/1e9:.1f}B"
+        data["USDT_MCap"] = f"${usdt_cap/1e9:.1f}B"
+        data["USDC_MCap"] = f"${usdc_cap/1e9:.1f}B"
+        data["DAI_MCap"] = f"${dai_cap/1e9:.1f}B"
+        data["USDT_Dom_Stable"] = f"%{usdt_cap/total*100:.1f}" if total > 0 else PLACEHOLDER
+        data["STABLE_C_D"] = PLACEHOLDER
+        health.success("DeFiLlama Stablecoins", stablecoin_response.latency_ms, stale_after_seconds=21600)
+    except FetchError as exc:
+        _record_fetch_error(health, "DeFiLlama Stablecoins", exc, stale_after_seconds=21600)
+        _set_defaults(data, {"Total_Stable": PLACEHOLDER, "USDT_MCap": PLACEHOLDER, "USDC_MCap": PLACEHOLDER, "DAI_MCap": PLACEHOLDER, "USDT_Dom_Stable": PLACEHOLDER, "Total_Stable_Num": None, "STABLE_C_D": PLACEHOLDER})
+    except DATA_PARSE_EXCEPTIONS as exc:
+        _record_parse_error(health, "DeFiLlama Stablecoins", exc, latency_ms=stablecoin_response.latency_ms if stablecoin_response else None, stale_after_seconds=21600)
+        _set_defaults(data, {"Total_Stable": PLACEHOLDER, "USDT_MCap": PLACEHOLDER, "USDC_MCap": PLACEHOLDER, "DAI_MCap": PLACEHOLDER, "USDT_Dom_Stable": PLACEHOLDER, "Total_Stable_Num": None, "STABLE_C_D": PLACEHOLDER})
+    data["_health"] = health.export()
+    return data
+
+
+@st.cache_data(ttl=MACRO_TTL)
+def _fetch_macro_snapshot(fred_api_key=""):
+    data = {}
+    health = HealthRecorder()
+    if not fred_api_key:
+        data["M2"] = PLACEHOLDER
+        data["FED"] = PLACEHOLDER
+        health.failure("FRED M2", "FRED_API_KEY missing", stale_after_seconds=21600)
+        health.failure("FRED FEDFUNDS", "FRED_API_KEY missing", stale_after_seconds=21600)
+        data["_health"] = health.export()
+        return data
+
+    task_map = {
+        "m2": lambda: _load_fred_series(series_id="M2SL", api_key=fred_api_key, limit=13, source="FRED M2"),
+        "fed": lambda: _load_fred_series(series_id="FEDFUNDS", api_key=fred_api_key, limit=1, source="FRED FEDFUNDS"),
+    }
+    results = _run_parallel_tasks(task_map, max_workers=2)
+
+    m2_response = results["m2"]
+    fed_response = results["fed"]
+    if isinstance(m2_response, FetchError):
+        _record_fetch_error(health, "FRED M2", m2_response, stale_after_seconds=21600)
+        data["M2"] = PLACEHOLDER
+    elif isinstance(m2_response, Exception):
+        _record_parse_error(health, "FRED M2", m2_response, stale_after_seconds=21600)
+        data["M2"] = PLACEHOLDER
+    else:
+        try:
+            observations = m2_response.payload["observations"]
+            latest = float(observations[0]["value"])
+            baseline = float(observations[12]["value"])
+            data["M2"] = f"%{(latest - baseline) / baseline * 100:.2f}"
+            health.success("FRED M2", m2_response.latency_ms, stale_after_seconds=21600)
+        except DATA_PARSE_EXCEPTIONS as exc:
+            _record_parse_error(health, "FRED M2", exc, latency_ms=m2_response.latency_ms, stale_after_seconds=21600)
+            data["M2"] = PLACEHOLDER
+
+    if isinstance(fed_response, FetchError):
+        _record_fetch_error(health, "FRED FEDFUNDS", fed_response, stale_after_seconds=21600)
+        data["FED"] = PLACEHOLDER
+    elif isinstance(fed_response, Exception):
+        _record_parse_error(health, "FRED FEDFUNDS", fed_response, stale_after_seconds=21600)
+        data["FED"] = PLACEHOLDER
+    else:
+        try:
+            observations = fed_response.payload["observations"]
+            data["FED"] = f"%{observations[0]['value']}"
+            health.success("FRED FEDFUNDS", fed_response.latency_ms, stale_after_seconds=21600)
+        except DATA_PARSE_EXCEPTIONS as exc:
+            _record_parse_error(health, "FRED FEDFUNDS", exc, latency_ms=fed_response.latency_ms, stale_after_seconds=21600)
+            data["FED"] = PLACEHOLDER
+
+    data["_health"] = health.export()
+    return data
+
+
+@st.cache_data(ttl=3600)
+def _fetch_onchain_snapshot():
+    data = {}
+    health = HealthRecorder()
+    response = None
+    try:
+        response = safe_fetch_json("Blockchain Stats", "https://api.blockchain.info/stats", timeout=5, headers=HEADERS)
+        payload = response.payload
+        data["Hash"] = f"{payload['hash_rate']/1e9:.2f} EH/s"
+        data["Active"] = f"{payload['n_blocks_mined']*2100:,}"
+        health.success("Blockchain Stats", response.latency_ms, stale_after_seconds=3600)
+    except FetchError as exc:
+        _record_fetch_error(health, "Blockchain Stats", exc, stale_after_seconds=3600)
+        _set_defaults(data, {"Hash": PLACEHOLDER, "Active": PLACEHOLDER})
+    except DATA_PARSE_EXCEPTIONS as exc:
+        _record_parse_error(health, "Blockchain Stats", exc, latency_ms=response.latency_ms if response else None, stale_after_seconds=3600)
+        _set_defaults(data, {"Hash": PLACEHOLDER, "Active": PLACEHOLDER})
+    data["_health"] = health.export()
+    return data
+
+
+@st.cache_data(ttl=SENTIMENT_TTL)
+def _fetch_sentiment_snapshot():
+    data = {}
+    health = HealthRecorder()
+    fng_response = None
+    try:
+        fng_response = safe_fetch_json("Alternative.me FNG", "https://api.alternative.me/fng/?limit=2", timeout=5, headers=HEADERS)
+        fng = fng_response.payload["data"]
+        data["FNG"] = f"{fng[0]['value']} ({fng[0]['value_classification']})"
+        data["FNG_PREV"] = f"{fng[1]['value']} ({fng[1]['value_classification']})"
+        data["FNG_NUM"] = int(fng[0]["value"])
+        health.success("Alternative.me FNG", fng_response.latency_ms, stale_after_seconds=1800)
+    except FetchError as exc:
+        _record_fetch_error(health, "Alternative.me FNG", exc, stale_after_seconds=1800)
+        _set_defaults(data, {"FNG": PLACEHOLDER, "FNG_PREV": PLACEHOLDER, "FNG_NUM": 0})
+    except DATA_PARSE_EXCEPTIONS as exc:
+        _record_parse_error(health, "Alternative.me FNG", exc, latency_ms=fng_response.latency_ms if fng_response else None, stale_after_seconds=1800)
+        _set_defaults(data, {"FNG": PLACEHOLDER, "FNG_PREV": PLACEHOLDER, "FNG_NUM": 0})
+
+    coindesk_response = None
+    try:
+        coindesk_response = safe_fetch_text("CoinDesk News", "https://www.coindesk.com/arc/outboundfeeds/rss/", timeout=8, headers=HEADERS, accept=TEXT_ACCEPT)
+        titles = re.findall(r"<title><!\[CDATA\[(.*?)\]\]></title>", coindesk_response.payload)[1:11]
+        links = re.findall(r"<link>(https://www\.coindesk\.com.*?)</link>", coindesk_response.payload)[:10]
+        dates = re.findall(r"<pubDate>(.*?)</pubDate>", coindesk_response.payload)[:10]
+        if not titles:
+            raise ValueError("CoinDesk RSS is empty")
+        data["NEWS"] = [{"title": title, "url": links[i] if i < len(links) else "#", "source": "CoinDesk", "time": dates[i][:16] if i < len(dates) else ""} for i, title in enumerate(titles)]
+        health.success("CoinDesk News", coindesk_response.latency_ms, stale_after_seconds=1800)
+    except FetchError as exc:
+        _record_fetch_error(health, "CoinDesk News", exc, stale_after_seconds=1800)
+        data["NEWS"] = []
+    except (TypeError, ValueError) as exc:
+        _record_parse_error(health, "CoinDesk News", exc, latency_ms=coindesk_response.latency_ms if coindesk_response else None, stale_after_seconds=1800)
+        data["NEWS"] = []
+
+    if not data.get("NEWS"):
+        cryptocompare_response = None
+        try:
+            cryptocompare_response = safe_fetch_json("CryptoCompare News", "https://min-api.cryptocompare.com/data/v2/news/?lang=EN&sortOrder=latest&limit=10", timeout=6, headers=HEADERS)
+            data["NEWS"] = [{"title": news["title"], "url": news["url"], "source": news["source_info"]["name"], "time": pd.Timestamp(news["published_on"], unit="s").strftime("%d %b %H:%M")} for news in cryptocompare_response.payload["Data"][:10]]
+            health.success("CryptoCompare News", cryptocompare_response.latency_ms, stale_after_seconds=1800)
+        except FetchError as exc:
+            _record_fetch_error(health, "CryptoCompare News", exc, stale_after_seconds=1800)
+            data["NEWS"] = []
+        except DATA_PARSE_EXCEPTIONS as exc:
+            _record_parse_error(health, "CryptoCompare News", exc, latency_ms=cryptocompare_response.latency_ms if cryptocompare_response else None, stale_after_seconds=1800)
+            data["NEWS"] = []
+
+    data["_health"] = health.export()
+    return data
+
+
+def veri_motoru(fred_api_key=""):
+    payloads = _run_parallel_tasks(
+        {
+            "market": _fetch_market_snapshot,
+            "orderbook": _fetch_orderbook_snapshot,
+            "stable": _fetch_stablecoin_snapshot,
+            "usdt": fetch_live_usdt_d,
+            "macro": lambda: _fetch_macro_snapshot(fred_api_key),
+            "onchain": _fetch_onchain_snapshot,
+            "sentiment": _fetch_sentiment_snapshot,
+        },
+        max_workers=7,
+    )
+    data = _merge_result_payloads(*payloads.values())
+    data.setdefault("OI", PLACEHOLDER)
+    data.setdefault("FR", PLACEHOLDER)
+    data.setdefault("Taker", PLACEHOLDER)
+    data.setdefault("LS_Ratio", PLACEHOLDER)
+    data.setdefault("Long_Pct", PLACEHOLDER)
+    data.setdefault("Short_Pct", PLACEHOLDER)
+    data.setdefault("LS_Signal", PLACEHOLDER)
+    if data.get("Total_Stable_Num") and data.get("Total_MCap_Num"):
+        data["STABLE_C_D"] = f"%{data['Total_Stable_Num']/data['Total_MCap_Num']*100:.2f}"
+    return data
+
+
+def load_terminal_data(fred_api_key=""):
+    payloads = _run_parallel_tasks(
+        {
+            "base": lambda: veri_motoru(fred_api_key),
+            "derivatives": turev_cek,
+            "market_cap": fetch_live_market_cap_segments,
+        },
+        max_workers=3,
+    )
+    data = _merge_result_payloads(*payloads.values())
+    if data.get("Total_Stable_Num") and data.get("TOTAL_CAP_NUM"):
+        data["STABLE_C_D"] = f"%{data['Total_Stable_Num']/data['TOTAL_CAP_NUM']*100:.2f}"
+    return data
+
+@st.cache_data(ttl=FAST_TTL)
 def turev_cek():
     data = {}
     health = HealthRecorder()

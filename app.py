@@ -10,7 +10,7 @@ from domain.market_brief import build_market_brief
 from domain.parsers import parse_number
 from services.ai_service import build_openrouter_client, generate_strategy_report
 from services.health import build_health_summary, merge_source_health
-from services.market_data import fetch_live_market_cap_segments, turev_cek, veri_motoru
+from services.market_data import load_terminal_data
 from ui.components import cat, render_cards, render_info_panel, render_market_brief
 from ui.layout import render_health_alerts, render_page_header, render_sidebar
 
@@ -515,19 +515,8 @@ hr { border-color: var(--border) !important; margin: 16px 0 !important; }
 # ============================================================
 son_guncelleme = pd.Timestamp.now(tz="Europe/Istanbul").strftime("%d.%m.%Y %H:%M:%S")
 with st.spinner("Piyasa verileri ve türev akışı yükleniyor..."):
-    data = veri_motoru(FRED_API_KEY)
+    data = load_terminal_data(FRED_API_KEY)
     current_health = merge_source_health(st.session_state.get("source_health"), data.pop("_health", {}))
-
-    derivative_data = turev_cek()
-    current_health = merge_source_health(current_health, derivative_data.pop("_health", {}))
-    data.update(derivative_data)
-
-    market_cap_data = fetch_live_market_cap_segments()
-    current_health = merge_source_health(current_health, market_cap_data.pop("_health", {}))
-    data.update(market_cap_data)
-
-    if data.get("Total_Stable_Num") and data.get("TOTAL_CAP_NUM"):
-        data["STABLE_C_D"] = f"%{data['Total_Stable_Num']/data['TOTAL_CAP_NUM']*100:.2f}"
     data["_health"] = current_health
     st.session_state["source_health"] = current_health
 
