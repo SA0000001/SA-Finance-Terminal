@@ -1,25 +1,45 @@
 import pandas as pd
 import streamlit as st
 
-from ui.components import clean_text, render_health_bar, render_info_panel
+from ui.components import clean_text, render_health_bar
 
 
-def render_page_header(last_updated: str, health_summary: dict):
+def render_page_header(last_updated: str, health_summary: dict, brief: dict, preferences: dict):
     st.markdown(
         f"""
         <div class="terminal-header">
-            <div>
+            <div class="header-copy">
                 <div class="hero-kicker">Digital Asset Intelligence</div>
                 <h1>SA Finance Alpha Terminal</h1>
                 <div class="header-subtitle">
-                    Kripto, makro ve likidite verilerini tek ekranda toplayan karar paneli.
-                    Basit gorunum hizli okuma icin, Pro gorunum derin analiz icin optimize edildi.
+                    Kripto, makro ve likidite verileri tek bir operasyon terminalinde okunur.
+                    Gereksiz kart tekrarlarini kaldirip karar akisina odaklanan daha sakin bir duzen kuruldu.
+                </div>
+                <div class="header-summary">
+                    <div class="summary-chip">
+                        <span>Piyasa Rejimi</span>
+                        <strong>{clean_text(brief["regime"]["title"])}</strong>
+                    </div>
+                    <div class="summary-chip">
+                        <span>Pozisyonlanma</span>
+                        <strong>{clean_text(brief["positioning"]["title"])}</strong>
+                    </div>
+                    <div class="summary-chip">
+                        <span>Likidite</span>
+                        <strong>{clean_text(brief["liquidity"]["title"])}</strong>
+                    </div>
                 </div>
             </div>
             <div class="header-meta">
-                <span class="header-pill">Canli veri akisi</span>
-                <span class="header-pill">Istanbul | {last_updated}</span>
-                <span class="badge">v19.0</span>
+                <div class="meta-stack">
+                    <span class="header-pill">Canli veri akisi</span>
+                    <span class="header-pill">Mod | {clean_text(preferences.get("view_mode", "Basit"))}</span>
+                    <span class="status-badge">v19.0</span>
+                </div>
+                <div class="meta-caption">
+                    Istanbul | {last_updated}<br/>
+                    Saglikli kaynak: {health_summary.get("healthy_sources", 0)}
+                </div>
             </div>
         </div>
         """,
@@ -27,7 +47,7 @@ def render_page_header(last_updated: str, health_summary: dict):
     )
     render_health_bar(health_summary)
     st.markdown(
-        "<div class='section-lead'>Bugunun en kritik sinyallerini, veri sagligi ve kullanici tercihleri ile birlikte tek yerde gorun.</div>",
+        "<div class='section-lead'>Ust bolum yonu verir, orta bolum karar sinyallerini aciklar, alt bolum ise tetikleyici senaryolari ve alarmlari toplar.</div>",
         unsafe_allow_html=True,
     )
 
@@ -37,9 +57,15 @@ def render_health_alerts(health_summary: dict):
     stale_sources = health_summary.get("stale_sources", [])
 
     if failed_sources:
-        st.warning(f"Fallback aktif kaynaklar: {', '.join(failed_sources[:5])}")
+        st.markdown(
+            f"<div class='notice-bar notice-warning'>Fallback aktif kaynaklar: {clean_text(', '.join(failed_sources[:5]))}</div>",
+            unsafe_allow_html=True,
+        )
     if stale_sources:
-        st.error(f"10+ dakika stale kaynak uyarisi: {', '.join(stale_sources[:5])}")
+        st.markdown(
+            f"<div class='notice-bar notice-error'>10+ dakika stale kaynak uyarisi: {clean_text(', '.join(stale_sources[:5]))}</div>",
+            unsafe_allow_html=True,
+        )
 
 
 def render_health_panel(health_summary: dict):
@@ -57,7 +83,7 @@ def render_health_panel(health_summary: dict):
 
 def render_sidebar(data, brief, last_updated: str, health_summary: dict, preferences: dict, alerts: list[dict]):
     with st.sidebar:
-        st.markdown("### Kontrol Merkezi")
+        st.markdown("### Komuta Paneli")
         st.caption(f"Son guncelleme: {last_updated}")
         st.divider()
 
@@ -78,34 +104,20 @@ def render_sidebar(data, brief, last_updated: str, health_summary: dict, prefere
         )
 
         st.divider()
-        render_info_panel(
-            "Quick Pulse",
-            "Bugunun Nabzi",
-            [
-                ("BTC fiyat", data.get("BTC_P", "-")),
-                ("Fear & Greed", data.get("FNG", "-")),
-                ("Funding", data.get("FR", "-")),
-                ("VIX", data.get("VIX", "-")),
-            ],
-            badge_text=brief["regime"]["title"],
-            badge_kind=brief["regime"]["class"],
-            copy="Fiyat, duygu ve volatilite ayni blokta toplandi.",
+        st.markdown(
+            f"""
+            <div class="sidebar-note">
+                Terminal ana yuzeyinde tekrar eden ozet kartlari kaldirildi.
+                Bu alan artik sadece kontrol, disa aktarma ve veri sagligi icin kullaniliyor.
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
-        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
-        render_info_panel(
-            "Watchlist",
-            "Izlenecek Seviyeler",
-            [
-                ("Order book", data.get("ORDERBOOK_SIGNAL", "-")),
-                ("Kraken ana seviye", f"{data.get('Sup_Wall', '-')} / {data.get('Res_Wall', '-')}"),
-                ("ETF netflow", f"{data.get('ETF_FLOW_TOTAL', '-')} | {data.get('ETF_FLOW_DATE', '-')}"),
-                ("USD/TRY", data.get("USDTRY", "-")),
-            ],
-            badge_text=preferences.get("view_mode", "Pro"),
-            badge_kind=brief["focus"]["class"],
-            copy="Kullanici secimi pinli metrikler ana ekranda gorunur.",
-        )
+        st.markdown("#### Hizli Notlar")
+        st.markdown(f"- Piyasa rejimi: {clean_text(brief['regime']['title'])}")
+        st.markdown(f"- Izlenen seviye: {clean_text(brief['focus']['detail'])}")
+        st.markdown(f"- ETF akisi: {clean_text(data.get('ETF_FLOW_TOTAL', '-'))}")
 
         if alerts:
             st.divider()

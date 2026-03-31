@@ -57,7 +57,7 @@ def render_cards(items, cols=4, accent="--accent"):
 
 def cat(title: str, icon: str = ""):
     icon_html = f"{clean_text(icon)}&nbsp;" if icon else ""
-    st.markdown(f'<div class="cat-header">{icon_html}{clean_text(title)}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="section-heading">{icon_html}{clean_text(title)}</div>', unsafe_allow_html=True)
 
 
 def render_info_panel(
@@ -76,7 +76,7 @@ def render_info_panel(
 
     st.markdown(
         f"""
-        <div class="info-panel">
+        <div class="info-panel surface-compact">
             <div class="panel-kicker">{clean_text(kicker)}</div>
             <div class="panel-title">{clean_text(title)}</div>
             {copy_html}
@@ -89,8 +89,8 @@ def render_info_panel(
 
 
 def render_market_brief(brief):
-    cols = st.columns(4)
-    for col, card in zip(cols, brief.values()):
+    cols = st.columns(2)
+    for col, card in zip(cols * 2, brief.values()):
         why_html = "".join(f"<div class='why-item'>{clean_text(reason)}</div>" for reason in card.get("why", []))
         with col:
             st.markdown(
