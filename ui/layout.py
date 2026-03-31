@@ -53,19 +53,7 @@ def render_page_header(last_updated: str, health_summary: dict, brief: dict, pre
 
 
 def render_health_alerts(health_summary: dict):
-    failed_sources = health_summary.get("failed_sources", [])
-    stale_sources = health_summary.get("stale_sources", [])
-
-    if failed_sources:
-        st.markdown(
-            f"<div class='notice-bar notice-warning'>Fallback aktif kaynaklar: {clean_text(', '.join(failed_sources[:5]))}</div>",
-            unsafe_allow_html=True,
-        )
-    if stale_sources:
-        st.markdown(
-            f"<div class='notice-bar notice-error'>10+ dakika stale kaynak uyarisi: {clean_text(', '.join(stale_sources[:5]))}</div>",
-            unsafe_allow_html=True,
-        )
+    return
 
 
 def render_health_panel(health_summary: dict):
@@ -118,6 +106,10 @@ def render_sidebar(data, brief, last_updated: str, health_summary: dict, prefere
         st.markdown(f"- Piyasa rejimi: {clean_text(brief['regime']['title'])}")
         st.markdown(f"- Izlenen seviye: {clean_text(brief['focus']['detail'])}")
         st.markdown(f"- ETF akisi: {clean_text(data.get('ETF_FLOW_TOTAL', '-'))}")
+        if health_summary.get("failed_sources"):
+            st.markdown(f"- Fallback kaynaklar: {clean_text(', '.join(health_summary['failed_sources'][:3]))}")
+        if health_summary.get("stale_sources"):
+            st.markdown(f"- Stale kaynaklar: {clean_text(', '.join(health_summary['stale_sources'][:3]))}")
 
         if alerts:
             st.divider()

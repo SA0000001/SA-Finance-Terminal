@@ -20,8 +20,17 @@ def clean_text(value):
     return text
 
 
+def is_missing(value) -> bool:
+    return clean_text(value).strip() in {PLACEHOLDER, "", "None"}
+
+
+def display_value(value, fallback: str = "Veri bekleniyor") -> str:
+    return fallback if is_missing(value) else clean_text(value)
+
+
 def mcard(label: str, value: str, delta: str = "", accent_color: str = "--accent"):
-    value = clean_text(value)
+    value_missing = is_missing(value)
+    value = display_value(value)
     delta = clean_text(delta) if delta else ""
     if delta and delta not in (PLACEHOLDER, ""):
         try:
@@ -36,10 +45,12 @@ def mcard(label: str, value: str, delta: str = "", accent_color: str = "--accent
     else:
         delta_html = ""
 
+    value_class = "metric-value metric-placeholder" if value_missing else "metric-value"
+
     return f"""
     <div class="metric-card" style="--card-accent: var({accent_color});">
         <div class="metric-label">{clean_text(label)}</div>
-        <div class="metric-value">{value}</div>
+        <div class="{value_class}">{value}</div>
         {delta_html}
     </div>
     """
@@ -64,10 +75,10 @@ def render_info_panel(
     kicker: str, title: str, rows, badge_text: str = "", badge_kind: str = "signal-neutral", copy: str = ""
 ):
     rows_html = "".join(
-        f"<div class='panel-row'><span>{clean_text(label)}</span><strong>{clean_text(value)}</strong></div>"
+        f"<div class='panel-row'><span>{clean_text(label)}</span><strong>{display_value(value)}</strong></div>"
         for label, value in rows
     )
-    copy_html = f"<div class='panel-copy'>{clean_text(copy)}</div>" if copy else ""
+    copy_html = f"<div class='panel-copy'>{display_value(copy)}</div>" if copy else ""
     badge_html = (
         f"<div style='margin-top:16px'><span class='{badge_kind}'>{clean_text(badge_text)}</span></div>"
         if badge_text
@@ -97,8 +108,8 @@ def render_market_brief(brief):
                 f"""
                 <div class="overview-card">
                     <div class="metric-label">{clean_text(card['label'])}</div>
-                    <div class="metric-value">{clean_text(card['title'])}</div>
-                    <div class="overview-detail">{clean_text(card['detail'])}</div>
+                    <div class="metric-value">{display_value(card['title'])}</div>
+                    <div class="overview-detail">{display_value(card['detail'])}</div>
                     <div style="margin-top:14px"><span class="{card['class']}">{clean_text(card['badge'])}</span></div>
                     <div class="why-list">{why_html}</div>
                 </div>
@@ -117,6 +128,39 @@ def render_health_bar(health_summary: dict):
             <span class="health-pill health-ok">OK {healthy}</span>
             <span class="health-pill health-fail">Fail {failed}</span>
             <span class="health-pill health-stale">Stale {stale}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_data_table_card(title: str, rows, kicker: str = "", caption: str = ""):
+    kicker_html = f"<div class='table-kicker'>{clean_text(kicker)}</div>" if kicker else ""
+    caption_html = f"<div class='table-caption'>{clean_text(caption)}</div>" if caption else ""
+    rows_html = "".join(
+        f"""
+        <tr>
+            <td>{clean_text(label)}</td>
+            <td>{display_value(value)}</td>
+        </tr>
+        """
+        for label, value in rows
+    )
+    st.markdown(
+        f"""
+        <div class="data-card">
+            {kicker_html}
+            <div class="table-title">{clean_text(title)}</div>
+            {caption_html}
+            <table class="terminal-table">
+                <thead>
+                    <tr>
+                        <th>Metrik</th>
+                        <th>Deger</th>
+                    </tr>
+                </thead>
+                <tbody>{rows_html}</tbody>
+            </table>
         </div>
         """,
         unsafe_allow_html=True,
