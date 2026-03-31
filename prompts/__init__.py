@@ -1,1 +1,1 @@
-
+"""Prompt templates."""
