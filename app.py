@@ -909,6 +909,221 @@ html, body, [data-testid="stAppViewContainer"] {
     padding-top: 8px;
 }
 
+.decision-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 18px;
+    align-items: start;
+}
+
+.command-surface {
+    display: grid;
+    gap: 18px;
+}
+
+.command-title {
+    color: var(--text);
+    font-size: 1.72rem;
+    line-height: 1.08;
+    font-weight: 780;
+    letter-spacing: -0.04em;
+}
+
+.command-copy {
+    color: var(--text-soft);
+    font-size: 0.96rem;
+    line-height: 1.75;
+    max-width: 60ch;
+}
+
+.command-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.command-stat {
+    padding: 14px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.028);
+    border: 1px solid rgba(126, 158, 197, 0.12);
+}
+
+.command-stat-label {
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-family: var(--mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.command-stat-value {
+    display: block;
+    margin-top: 8px;
+    color: var(--text);
+    font-size: 0.98rem;
+    line-height: 1.55;
+    font-weight: 720;
+}
+
+.command-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.command-block {
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.022);
+    border: 1px solid rgba(126, 158, 197, 0.1);
+}
+
+.command-block-title {
+    color: var(--text);
+    font-size: 0.86rem;
+    font-weight: 720;
+    letter-spacing: -0.01em;
+}
+
+.command-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.command-list-item {
+    color: var(--muted);
+    font-size: 0.88rem;
+    line-height: 1.65;
+    padding-left: 14px;
+    position: relative;
+}
+
+.command-list-item::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--accent);
+    position: absolute;
+    left: 0;
+    top: 0.62rem;
+    opacity: 0.8;
+}
+
+.signal-deck-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.signal-deck {
+    background: linear-gradient(180deg, rgba(12, 20, 33, 0.92), rgba(8, 15, 24, 0.95));
+    border: 1px solid rgba(126, 158, 197, 0.12);
+    border-radius: 22px;
+    padding: 18px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.15);
+    height: 100%;
+}
+
+.signal-deck-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.signal-deck-title {
+    color: var(--text);
+    font-size: 1.14rem;
+    font-weight: 740;
+    letter-spacing: -0.03em;
+}
+
+.signal-deck-score {
+    text-align: right;
+}
+
+.signal-deck-score strong {
+    display: block;
+    color: var(--text);
+    font-size: 1.18rem;
+    font-weight: 780;
+}
+
+.signal-deck-score span {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-family: var(--mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.signal-deck-copy {
+    color: var(--muted);
+    font-size: 0.88rem;
+    line-height: 1.65;
+    margin-top: 10px;
+}
+
+.signal-chip-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.signal-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-family: var(--mono);
+    color: var(--text-soft);
+    border: 1px solid rgba(126, 158, 197, 0.14);
+    background: rgba(255, 255, 255, 0.028);
+}
+
+.signal-mini-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.signal-mini-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid rgba(126, 158, 197, 0.08);
+    padding-bottom: 9px;
+}
+
+.signal-mini-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.signal-mini-row span {
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.signal-mini-row strong {
+    color: var(--text);
+    font-size: 0.84rem;
+    line-height: 1.5;
+    text-align: right;
+}
+
+.reports-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 18px;
+}
+
 [data-testid="stButton"] > button,
 [data-testid="stDownloadButton"] > button {
     border-radius: var(--radius-sm) !important;
@@ -1129,7 +1344,12 @@ html, body, [data-testid="stAppViewContainer"] {
     .score-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .regime-top,
     .factor-grid,
-    .regime-summary-grid { grid-template-columns: 1fr; }
+    .regime-summary-grid,
+    .decision-grid,
+    .command-stat-grid,
+    .command-columns,
+    .signal-deck-grid,
+    .reports-grid { grid-template-columns: 1fr; }
     .panel-row { grid-template-columns: 1fr; }
     .panel-row strong { text-align: left; }
     .hero-grid,
@@ -1540,6 +1760,161 @@ def score_delta_meta(delta_7d: int) -> tuple[str, str]:
     return "7g 0", "delta-flat"
 
 
+def render_signal_deck(
+    kicker: str,
+    title: str,
+    copy: str,
+    rows: list[tuple[str, object]],
+    *,
+    score_value: str,
+    score_label: str,
+    chips: list[str] | None = None,
+):
+    rows_html = "".join(
+        f"<div class='signal-mini-row'><span>{clean_text(label)}</span><strong>{display_value(value)}</strong></div>"
+        for label, value in rows
+    )
+    chip_html = "".join(f"<span class='signal-chip'>{clean_text(chip)}</span>" for chip in (chips or []))
+    st.markdown(
+        f"""
+        <div class="signal-deck">
+            <div class="panel-kicker">{clean_text(kicker)}</div>
+            <div class="signal-deck-top">
+                <div class="signal-deck-title">{clean_text(title)}</div>
+                <div class="signal-deck-score">
+                    <strong>{clean_text(score_value)}</strong>
+                    <span>{clean_text(score_label)}</span>
+                </div>
+            </div>
+            <div class="signal-deck-copy">{clean_text(copy)}</div>
+            <div class="signal-chip-row">{chip_html}</div>
+            <div class="signal-mini-list">{rows_html}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_command_surface(data: dict, brief: dict, analytics: dict, alerts: list[dict], health_summary: dict):
+    scores = analytics["scores"]
+    what_matters = (
+        brief["regime"].get("why", [])[:1]
+        + brief["liquidity"].get("why", [])[:1]
+        + brief["positioning"].get("why", [])[:1]
+    )
+    invalidate_items = scores.get("invalidate_conditions", [])
+    watch_items = scores.get("watch_next", [])
+    issue_count = len(health_summary.get("failed_sources", [])) + len(health_summary.get("stale_sources", []))
+
+    stat_html = "".join(
+        f"""
+        <div class="command-stat">
+            <span class="command-stat-label">{clean_text(label)}</span>
+            <span class="command-stat-value">{clean_text(value)}</span>
+        </div>
+        """
+        for label, value in [
+            ("Current Bias", scores["bias"]),
+            ("Focus Level", brief["focus"]["title"]),
+            ("Dominant Driver", scores["dominant_driver"]),
+            ("Weakest Link", scores["weakest_driver"]),
+        ]
+    )
+    matters_html = "".join(f"<div class='command-list-item'>{clean_text(item)}</div>" for item in what_matters[:3])
+    invalidate_html = "".join(
+        f"<div class='command-list-item'>{clean_text(item)}</div>" for item in invalidate_items[:3]
+    )
+    watch_html = "".join(f"<div class='command-list-item'>{clean_text(item)}</div>" for item in watch_items[:3])
+
+    st.markdown(
+        f"""
+        <div class="surface command-surface">
+            <div>
+                <div class="panel-kicker">Command Surface</div>
+                <div class="command-title">{clean_text(scores['overlay'])}</div>
+                <div class="command-copy">
+                    {clean_text(scores['summary'])} Bugunun ana tezi; {clean_text(brief['regime']['title'])},
+                    {clean_text(brief['liquidity']['title'])} ve {clean_text(brief['positioning']['title'])}
+                    katmanlarinin birlikte okunmasi gerekiyor.
+                </div>
+            </div>
+            <div class="command-stat-grid">{stat_html}</div>
+            <div class="command-columns">
+                <div class="command-block">
+                    <div class="command-block-title">What Matters Now</div>
+                    <div class="command-list">{matters_html}</div>
+                </div>
+                <div class="command-block">
+                    <div class="command-block-title">Invalidate If</div>
+                    <div class="command-list">{invalidate_html}</div>
+                </div>
+            </div>
+            <div class="command-columns">
+                <div class="command-block">
+                    <div class="command-block-title">Watch Next</div>
+                    <div class="command-list">{watch_html}</div>
+                </div>
+                <div class="command-block">
+                    <div class="command-block-title">Operating Context</div>
+                    <div class="command-list">
+                        <div class="command-list-item">Confidence {scores['confidence']}/100 | {clean_text(scores['confidence_label'])}</div>
+                        <div class="command-list-item">Aktif alarm {len(alerts)} | veri sorunu {issue_count}</div>
+                        <div class="command-list-item">Odak seviye: {clean_text(brief['focus']['detail'])}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_catalyst_stream(data: dict, analytics: dict, alerts: list[dict], health_summary: dict):
+    scores = analytics["scores"]
+    issue_rows = get_source_health_rows(health_summary, include_ok=False)[:3]
+    alert_rows = alerts[:3] or [
+        {"title": "Aktif alarm yok", "detail": "Esik bazli alarm akisi su an sessiz; rejim okumasi sinyal deck'lerde."}
+    ]
+    alert_html = "".join(
+        f"<div class='command-list-item'><strong>{clean_text(item['title'])}</strong> | {clean_text(item['detail'])}</div>"
+        for item in alert_rows
+    )
+    watch_html = "".join(
+        f"<div class='command-list-item'>{clean_text(item)}</div>" for item in scores.get("watch_next", [])[:3]
+    )
+    issue_html = "".join(
+        f"<div class='command-list-item'>{clean_text(row['Kaynak'])} | {clean_text(row['Durum'])} | {clean_text(row['Hata'])}</div>"
+        for row in issue_rows
+    ) or "<div class='command-list-item'>Kritik veri problemi yok; kaynak akisinda anlamli bir bozulma görünmuyor.</div>"
+
+    st.markdown(
+        f"""
+        <div class="surface">
+            <div class="panel-kicker">Catalyst Stream</div>
+            <div class="panel-title">Bugun neyi izleyecegiz?</div>
+            <div class="panel-copy">
+                Bu alan alarm, dikkat gerektiren tetikleyici ve veri sagligi sinyallerini tek operasyon akisi halinde toplar.
+            </div>
+            <div class="command-columns">
+                <div class="command-block">
+                    <div class="command-block-title">Active Alerts</div>
+                    <div class="command-list">{alert_html}</div>
+                </div>
+                <div class="command-block">
+                    <div class="command-block-title">Next Checkpoints</div>
+                    <div class="command-list">{watch_html}</div>
+                </div>
+            </div>
+            <div class="command-block">
+                <div class="command-block-title">Diagnostics</div>
+                <div class="command-list">{issue_html}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_score_panel(analytics: dict):
     scores = analytics["scores"]
     contribution_html = "".join(
@@ -1781,86 +2156,93 @@ def render_all_metrics_tab(data: dict):
     render_table_row(data, DATA_ATLAS_SECTIONS[4:], 4)
 
 
-def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[dict]):
-    hero_col, context_col = st.columns([1.45, 0.95])
-    with hero_col:
-        st.markdown(
-            f"""
-            <div class="deck-card">
-                <div class="panel-kicker">Market Overview</div>
-                <div class="deck-title">Bitcoin / USD</div>
-                <div class="spotlight-price">{display_value(data.get('BTC_P', '-'))}</div>
-                <div class="deck-copy">
-                    Macro regime, piyasa duyarliligi ve order book teyidini ayni bakista okutan ana calisma yuzeyi.
-                </div>
-                <div class="deck-stats">
-                    <div class="deck-stat">
-                        <span class="deck-stat-label">24 Saat</span>
-                        <span class="deck-stat-value">{display_value(data.get('BTC_C', '-'))}</span>
-                    </div>
-                    <div class="deck-stat">
-                        <span class="deck-stat-label">7 Gun</span>
-                        <span class="deck-stat-value">{display_value(data.get('BTC_7D', '-'))}</span>
-                    </div>
-                    <div class="deck-stat">
-                        <span class="deck-stat-label">Piyasa Degeri</span>
-                        <span class="deck-stat-value">{display_value(data.get('BTC_MCap', '-'))}</span>
-                    </div>
-                    <div class="deck-stat">
-                        <span class="deck-stat-label">DXY</span>
-                        <span class="deck-stat-value">{display_value(data.get('DXY', '-'))}</span>
-                    </div>
-                    <div class="deck-stat">
-                        <span class="deck-stat-label">ETF Akisi</span>
-                        <span class="deck-stat-value">{display_value(data.get('ETF_FLOW_TOTAL', '-'))}</span>
-                    </div>
-                    <div class="deck-stat">
-                        <span class="deck-stat-label">USDT.D</span>
-                        <span class="deck-stat-value">{display_value(data.get('USDT_D', '-'))}</span>
-                    </div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    with context_col:
-        render_info_panel(
-            "Executive View",
-            "Bugunun Oyun Plani",
-            [
-                ("Piyasa rejimi", brief["regime"]["title"]),
-                ("Pozisyonlanma", brief["positioning"]["title"]),
-                ("Likidite", brief["liquidity"]["title"]),
-                ("Odak seviye", brief["focus"]["detail"]),
-            ],
-            badge_text=brief["focus"]["badge"],
-            badge_kind=brief["focus"]["class"],
-            copy="Sag kolon once rejimi, sonra likidite ve seviye teyidini verir. Veri eksiginde terminal bunu artik baglamsal olarak anlatir.",
-        )
+def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[dict], health_summary: dict):
+    scores = analytics["scores"]
+    factors = {factor["key"]: factor for factor in scores["factors"]}
 
-    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
-    render_market_brief(brief)
-    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='table-section-title'>Terminal</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='table-section-copy'>Ana ekran artik tek bir command center gibi calisiyor: once rejim, sonra bugunun okuması, sonra da trade'i bozabilecek sinyaller okunuyor.</div>",
+        unsafe_allow_html=True,
+    )
 
-    col_matrix, col_side = st.columns([1.3, 0.9])
-    with col_matrix:
-        render_scenario_matrix(analytics)
-    with col_side:
+    left_col, right_col = st.columns([1.12, 0.88])
+    with left_col:
         render_score_panel(analytics)
-        st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
-        render_data_table_card(
-            "Critical Tape",
+    with right_col:
+        render_command_surface(data, brief, analytics, alerts, health_summary)
+
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    deck_cols = st.columns(4)
+    with deck_cols[0]:
+        factor = factors["liquidity"]
+        delta_text, _ = score_delta_meta(factor["delta_7d"])
+        render_signal_deck(
+            "Liquidity Deck",
+            brief["liquidity"]["title"],
+            factor["summary"],
+            [
+                ("ETF Flow", data.get("ETF_FLOW_TOTAL", "-")),
+                ("DXY", data.get("DXY", "-")),
+                ("USDT.D", data.get("USDT_D", "-")),
+            ],
+            score_value=f"{factor['score']}/100",
+            score_label=factor["confidence_label"],
+            chips=[factor["state"], f"Weight {factor['weight_pct']}%", delta_text, factor["primary_risk"]],
+        )
+    with deck_cols[1]:
+        factor = factors["positioning"]
+        delta_text, _ = score_delta_meta(factor["delta_7d"])
+        render_signal_deck(
+            "Positioning Deck",
+            brief["positioning"]["title"],
+            factor["summary"],
             [
                 ("Funding", data.get("FR", "-")),
-                ("L/S Orani", data.get("LS_Ratio", "-")),
+                ("L/S", data.get("LS_Ratio", "-")),
                 ("Taker", data.get("Taker", "-")),
-                ("Birlesik Sinyal", data.get("ORDERBOOK_SIGNAL", "-")),
-                ("ETF Netflow", data.get("ETF_FLOW_TOTAL", "-")),
-                ("VIX", data.get("VIX", "-")),
             ],
-            kicker="Signal Surface",
-            caption="Ana sayfadaki alarmlari cikardim; onun yerine karar destek sinyallerini bir control tape olarak birlestirdim.",
+            score_value=f"{factor['score']}/100",
+            score_label=factor["confidence_label"],
+            chips=[factor["state"], f"Weight {factor['weight_pct']}%", delta_text, factor["primary_risk"]],
         )
+    with deck_cols[2]:
+        factor = factors["breadth"]
+        delta_text, _ = score_delta_meta(factor["delta_7d"])
+        render_signal_deck(
+            "Breadth Deck",
+            "Participation Quality",
+            factor["summary"],
+            [
+                ("TOTAL2", data.get("TOTAL2_CAP", "-")),
+                ("TOTAL3", data.get("TOTAL3_CAP", "-")),
+                ("BTC Dom", data.get("Dom", "-")),
+            ],
+            score_value=f"{factor['score']}/100",
+            score_label=factor["confidence_label"],
+            chips=[factor["state"], f"Weight {factor['weight_pct']}%", delta_text, factor["primary_risk"]],
+        )
+    with deck_cols[3]:
+        render_signal_deck(
+            "Execution Deck",
+            brief["focus"]["title"],
+            "Destek/direnc, order book uyumu ve fiyat teyidini ayni deck'te verir.",
+            [
+                ("Support", data.get("Sup_Wall", "-")),
+                ("Resistance", data.get("Res_Wall", "-")),
+                ("Signal", data.get("ORDERBOOK_SIGNAL", "-")),
+            ],
+            score_value=display_value(data.get("BTC_P", "-")),
+            score_label=brief["focus"]["badge"],
+            chips=[brief["regime"]["title"], brief["focus"]["badge"], brief["focus"]["class"].replace("signal-", "")],
+        )
+
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    lower_left, lower_right = st.columns([1.08, 0.92])
+    with lower_left:
+        render_scenario_matrix(analytics)
+    with lower_right:
+        render_catalyst_stream(data, analytics, alerts, health_summary)
 
 
 def render_macro_tab(data: dict):
@@ -1879,10 +2261,60 @@ def render_macro_tab(data: dict):
 def render_flow_risk_tab(data: dict, health_summary: dict):
     st.markdown("<div class='table-section-title'>Flow and Risk Surfaces</div>", unsafe_allow_html=True)
     st.markdown(
-        "<div class='table-section-copy'>Turev, order book, ETF, stablecoin ve breadth katmanlarini ayri ayri ama tek tasarim sistemi icinde topladim.</div>",
+        "<div class='table-section-copy'>Bu ekran ham veri tablosu degil; positioning, liquidity, breadth ve execution katmanlarini once yorumlar, sonra detay yuzeylerine iner.</div>",
         unsafe_allow_html=True,
     )
-    render_table_row(data, FLOW_RISK_SECTIONS[:2], 2)
+    scores = build_analytics_payload(data)["scores"]
+    factors = {factor["key"]: factor for factor in scores["factors"]}
+    top_cols = st.columns(2)
+    with top_cols[0]:
+        factor = factors["positioning"]
+        delta_text, _ = score_delta_meta(factor["delta_7d"])
+        render_signal_deck(
+            "Positioning",
+            factor["state"],
+            factor["summary"],
+            [("OI", data.get("OI", "-")), ("Funding", data.get("FR", "-")), ("L/S", data.get("LS_Ratio", "-")), ("Taker", data.get("Taker", "-"))],
+            score_value=f"{factor['score']}/100",
+            score_label=factor["confidence_label"],
+            chips=[delta_text, factor["primary_risk"], f"Weight {factor['weight_pct']}%"],
+        )
+    with top_cols[1]:
+        factor = factors["liquidity"]
+        delta_text, _ = score_delta_meta(factor["delta_7d"])
+        render_signal_deck(
+            "Liquidity",
+            factor["state"],
+            factor["summary"],
+            [("ETF", data.get("ETF_FLOW_TOTAL", "-")), ("DXY", data.get("DXY", "-")), ("US10Y", data.get("US10Y", "-")), ("USDT.D", data.get("USDT_D", "-"))],
+            score_value=f"{factor['score']}/100",
+            score_label=factor["confidence_label"],
+            chips=[delta_text, factor["primary_risk"], f"Weight {factor['weight_pct']}%"],
+        )
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    mid_cols = st.columns(2)
+    with mid_cols[0]:
+        factor = factors["breadth"]
+        delta_text, _ = score_delta_meta(factor["delta_7d"])
+        render_signal_deck(
+            "Breadth",
+            factor["state"],
+            factor["summary"],
+            [("TOTAL2", data.get("TOTAL2_CAP", "-")), ("TOTAL3", data.get("TOTAL3_CAP", "-")), ("OTHERS", data.get("OTHERS_CAP", "-")), ("BTC Dom", data.get("Dom", "-"))],
+            score_value=f"{factor['score']}/100",
+            score_label=factor["confidence_label"],
+            chips=[delta_text, factor["primary_risk"], f"Weight {factor['weight_pct']}%"],
+        )
+    with mid_cols[1]:
+        render_signal_deck(
+            "Execution",
+            display_value(data.get("ORDERBOOK_SIGNAL", "-")),
+            "Coklu borsa seviyeleri ile ETF ve fiyat tepkisi bu deck'te birlikte okunur.",
+            [("Support", data.get("Sup_Wall", "-")), ("Resistance", data.get("Res_Wall", "-")), ("Wall Status", data.get("Wall_Status", "-")), ("ETF Flow", data.get("ETF_FLOW_TOTAL", "-"))],
+            score_value=display_value(data.get("BTC_P", "-")),
+            score_label="spot",
+            chips=[display_value(data.get("ORDERBOOK_SIGNAL_BADGE", "-"), fallback="watch"), display_value(data.get("ORDERBOOK_SIGNAL_CLASS", "-"), fallback="neutral")],
+        )
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
     render_source_health_surface(
         "Turev Kaynak Durumu",
@@ -1891,13 +2323,21 @@ def render_flow_risk_tab(data: dict, health_summary: dict):
         empty_copy="Turev kaynaklarina ait health kaydi henuz olusmadi.",
     )
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='table-section-copy'>Raw surfaces</div>", unsafe_allow_html=True)
     render_table_row(data, FLOW_RISK_SECTIONS[2:], 2)
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    render_table_row(data, FLOW_RISK_SECTIONS[:2], 2)
 
 
 def render_report_tab(
     client, data: dict, brief: dict, analytics: dict, alerts: list[dict], health_summary: dict, report_depth: str
 ):
-    col_chart, col_side = st.columns([2.0, 1.1])
+    st.markdown("<div class='table-section-title'>Reports and Catalysts</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='table-section-copy'>Raporlar sekmesi artik sadece widget koleksiyonu degil; senaryo, AI yorumu, takvim ve haber akislarini ayni raporlama yüzeyinde toplar.</div>",
+        unsafe_allow_html=True,
+    )
+    col_chart, col_side = st.columns([1.7, 1.0])
     with col_chart:
         st.subheader("Canli BTC/USDT Grafigi")
         components.html(
@@ -1913,9 +2353,12 @@ def render_report_tab(
             height=540,
         )
         st.divider()
+        render_scenario_matrix(analytics)
+        st.divider()
         render_downloads(data, brief, analytics, alerts, health_summary)
     with col_side:
-        st.subheader("Makro Takvim")
+        render_catalyst_stream(data, analytics, alerts, health_summary)
+        st.divider()
         components.html(
             """
             <div class="tradingview-widget-container">
@@ -1928,8 +2371,31 @@ def render_report_tab(
         )
         st.divider()
         render_ai_report(client, data, report_depth)
-        st.divider()
-        render_alert_panel(alerts)
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    col_news, col_health = st.columns([1.15, 0.85])
+    with col_news:
+        st.subheader("News and Catalysts")
+        news = data.get("NEWS", [])
+        if news:
+            for item in news[:8]:
+                st.markdown(
+                    f"""
+                    <div class="news-card">
+                        <a href="{item['url']}" target="_blank">{clean_text(item['title'])}</a>
+                        <div class="news-meta">{clean_text(item['time'])} | {clean_text(item['source'])}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.info("Haber akisi su an yok.")
+    with col_health:
+        render_source_health_surface(
+            "Diagnostics",
+            "Raporlama katmaninda kullanilan veri akisinin saglik durumu ve kritik bozulmalar burada toplanir.",
+            get_source_health_rows(health_summary, include_ok=False)[:5],
+            empty_copy="Raporlama akisini bozacak kritik veri problemi bulunmuyor.",
+        )
 
 
 init_preferences()
@@ -1949,43 +2415,21 @@ brief = build_market_brief(data)
 analytics = build_analytics_payload(data)
 alerts = build_alerts(data, preferences.get("thresholds", {}))
 
-render_page_header(last_updated, health_summary, brief, preferences)
+render_page_header(last_updated, health_summary, brief, preferences, analytics)
 render_health_alerts(health_summary)
 render_sidebar(data, brief, last_updated, health_summary, preferences, alerts)
 render_control_rail(data, brief, last_updated, health_summary, alerts)
-render_pinned_dashboard(data, preferences.get("pinned_metrics", DEFAULT_PINNED_METRICS))
 
-if preferences.get("view_mode") == "Basit":
-    tabs = st.tabs(
-        ["Bitcoin ve Kripto", "Makro ve Piyasalar", "Akis ve Risk", "Grafik ve Rapor", "Tum Metrikler"]
+tabs = st.tabs(["Terminal", "Macro", "Flow", "Reports", "Atlas"])
+with tabs[0]:
+    render_overview_tab(data, brief, analytics, alerts, health_summary)
+with tabs[1]:
+    render_macro_tab(data)
+with tabs[2]:
+    render_flow_risk_tab(data, health_summary)
+with tabs[3]:
+    render_report_tab(
+        client, data, brief, analytics, alerts, health_summary, preferences.get("report_depth", "Orta")
     )
-    with tabs[0]:
-        render_overview_tab(data, brief, analytics, alerts)
-    with tabs[1]:
-        render_macro_tab(data)
-    with tabs[2]:
-        render_flow_risk_tab(data, health_summary)
-    with tabs[3]:
-        render_report_tab(
-            client, data, brief, analytics, alerts, health_summary, preferences.get("report_depth", "Orta")
-        )
-    with tabs[4]:
-        render_all_metrics_tab(data)
-else:
-    tabs = st.tabs(
-        ["Bitcoin ve Kripto", "Makro ve Piyasalar", "Akis ve Risk", "Grafik ve Rapor", "Haberler", "Tum Metrikler"]
-    )
-    with tabs[0]:
-        render_overview_tab(data, brief, analytics, alerts)
-    with tabs[1]:
-        render_macro_tab(data)
-    with tabs[2]:
-        render_flow_risk_tab(data, health_summary)
-    with tabs[3]:
-        render_report_tab(
-            client, data, brief, analytics, alerts, health_summary, preferences.get("report_depth", "Orta")
-        )
-    with tabs[4]:
-        render_news_tab(data)
-    with tabs[5]:
-        render_all_metrics_tab(data)
+with tabs[4]:
+    render_all_metrics_tab(data)
