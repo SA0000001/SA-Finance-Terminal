@@ -492,6 +492,257 @@ html, body, [data-testid="stAppViewContainer"] {
     letter-spacing: -0.05em;
 }
 
+.regime-panel {
+    padding: 24px;
+}
+
+.regime-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.85fr);
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.regime-hero,
+.fragility-card,
+.factor-card {
+    border: 1px solid rgba(126, 158, 197, 0.12);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.025);
+    backdrop-filter: blur(12px);
+}
+
+.regime-hero {
+    padding: 22px;
+}
+
+.regime-hero-head,
+.factor-head,
+.factor-meta,
+.contribution-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.regime-overlay {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(126, 158, 197, 0.16);
+    background: rgba(13, 26, 42, 0.74);
+    color: var(--text);
+    font-size: 0.76rem;
+    font-family: var(--mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.regime-main-score {
+    margin-top: 18px;
+    font-size: 4.1rem;
+    line-height: 0.92;
+    font-weight: 800;
+    letter-spacing: -0.08em;
+    color: #ffffff;
+}
+
+.regime-score-copy {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.65;
+    max-width: 56ch;
+}
+
+.regime-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.summary-stat {
+    padding: 14px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(126, 158, 197, 0.08);
+}
+
+.summary-stat-label {
+    display: block;
+    color: var(--muted);
+    font-size: 0.66rem;
+    font-family: var(--mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.summary-stat-value {
+    display: block;
+    margin-top: 8px;
+    color: var(--text);
+    font-size: 1rem;
+    line-height: 1.4;
+    font-weight: 700;
+}
+
+.contribution-list {
+    margin-top: 18px;
+    display: grid;
+    gap: 10px;
+}
+
+.contribution-meta {
+    min-width: 86px;
+    text-align: right;
+    color: var(--text);
+    font-weight: 700;
+    font-size: 0.84rem;
+}
+
+.contribution-copy {
+    color: var(--text-soft);
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+.contribution-bar {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    margin-top: 6px;
+    overflow: hidden;
+}
+
+.contribution-bar-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(89, 212, 255, 0.82), rgba(89, 212, 255, 0.28));
+}
+
+.fragility-card {
+    padding: 20px;
+}
+
+.fragility-score {
+    margin-top: 14px;
+    font-size: 2.8rem;
+    line-height: 0.95;
+    font-weight: 800;
+    letter-spacing: -0.07em;
+    color: #fff;
+}
+
+.fragility-label {
+    margin-top: 8px;
+    color: var(--yellow);
+    font-size: 0.9rem;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.fragility-flags {
+    display: grid;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.fragility-flag {
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(126, 158, 197, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-soft);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.factor-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.factor-card {
+    padding: 18px;
+}
+
+.factor-name {
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.factor-weight {
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+}
+
+.factor-score-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.factor-score {
+    color: var(--text);
+    font-size: 2.2rem;
+    line-height: 0.95;
+    font-weight: 800;
+    letter-spacing: -0.07em;
+}
+
+.factor-delta {
+    font-size: 0.84rem;
+    font-family: var(--mono);
+    letter-spacing: 0.05em;
+}
+
+.delta-up { color: var(--green); }
+.delta-down { color: var(--red); }
+.delta-flat { color: var(--muted); }
+
+.factor-copy {
+    margin-top: 10px;
+    color: var(--text-soft);
+    font-size: 0.88rem;
+    line-height: 1.6;
+}
+
+.factor-meta {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.driver-list {
+    margin-top: 14px;
+    display: grid;
+    gap: 8px;
+}
+
+.driver-item {
+    padding-top: 8px;
+    border-top: 1px solid rgba(126, 158, 197, 0.1);
+    color: var(--text-soft);
+    font-size: 0.84rem;
+    line-height: 1.55;
+}
+
 .matrix-table {
     width: 100%;
     border-collapse: collapse;
@@ -773,6 +1024,9 @@ html, body, [data-testid="stAppViewContainer"] {
     .header-summary { display: grid; }
     .spotlight-meta { grid-template-columns: 1fr; }
     .score-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .regime-top,
+    .factor-grid,
+    .regime-summary-grid { grid-template-columns: 1fr; }
     .panel-row { grid-template-columns: 1fr; }
     .panel-row strong { text-align: left; }
     .hero-grid,
@@ -997,25 +1251,105 @@ def render_pinned_dashboard(data: dict, pinned_metrics: list[str]):
     render_cards(pulse_items, cols=6)
 
 
+def score_delta_meta(delta_7d: int) -> tuple[str, str]:
+    if delta_7d > 1:
+        return f"7g +{delta_7d}", "delta-up"
+    if delta_7d < -1:
+        return f"7g {delta_7d}", "delta-down"
+    return "7g 0", "delta-flat"
+
+
 def render_score_panel(analytics: dict):
     scores = analytics["scores"]
-    score_items = [("Genel", scores["overall"]), *scores["subscores"].items()]
-    score_html = "".join(
+    contribution_html = "".join(
         f"""
-        <div class="score-pill">
-            <span class="score-label">{clean_text(label)}</span>
-            <span class="score-value">{clean_text(value)}/100</span>
+        <div class="contribution-row">
+            <div style="flex:1">
+                <div class="contribution-copy">{clean_text(factor['label'])} katkisi</div>
+                <div class="contribution-bar">
+                    <div class="contribution-bar-fill" style="width:{factor['score']}%"></div>
+                </div>
+            </div>
+            <div class="contribution-meta">{factor['contribution']:.1f} puan</div>
         </div>
         """
-        for label, value in score_items
+        for factor in sorted(scores["factors"], key=lambda item: item["contribution"], reverse=True)
     )
+    fragility_html = "".join(
+        f"<div class='fragility-flag'>{clean_text(flag)}</div>" for flag in scores["fragility"]["flags"]
+    )
+    factor_html = ""
+    for factor in scores["factors"]:
+        delta_text, delta_class = score_delta_meta(factor["delta_7d"])
+        drivers_html = "".join(f"<div class='driver-item'>{clean_text(driver)}</div>" for driver in factor["drivers"])
+        factor_html += f"""
+        <div class="factor-card">
+            <div class="factor-head">
+                <span class="factor-name">{clean_text(factor['label'])}</span>
+                <span class="factor-weight">Weight {factor['weight_pct']}%</span>
+            </div>
+            <div class="factor-score-row">
+                <div class="factor-score">{factor['score']}/100</div>
+                <div class="factor-delta {delta_class}">{delta_text}</div>
+            </div>
+            <div class="factor-copy">{clean_text(factor['summary'])}</div>
+            <div class="factor-meta">
+                <span>Katki {factor['contribution']:.1f} puan</span>
+                <span>{clean_text(factor['trend_text'])}</span>
+            </div>
+            <div class="driver-list">{drivers_html}</div>
+        </div>
+        """
     st.markdown(
         f"""
-        <div class="surface">
-            <div class="panel-kicker">Risk Skoru</div>
+        <div class="surface regime-panel">
+            <div class="panel-kicker">Risk Engine</div>
             <div class="panel-title">Rejim Haritasi</div>
-            <div class="panel-copy">Likidite, volatilite, pozisyonlanma ve breadth ayni tabloda okunur.</div>
-            <div class="score-grid">{score_html}</div>
+            <div class="panel-copy">{clean_text(scores['summary'])}</div>
+            <div class="regime-top">
+                <div class="regime-hero">
+                    <div class="regime-hero-head">
+                        <div>
+                            <div class="metric-label">Genel Rejim</div>
+                            <div class="regime-main-score">{scores['overall']}/100</div>
+                        </div>
+                        <div class="regime-overlay">{clean_text(scores['overlay'])}</div>
+                    </div>
+                    <div class="regime-score-copy">
+                        {clean_text(scores['regime_band'])}. Dominant surucu {clean_text(scores['dominant_driver'])};
+                        en zayif halka ise {clean_text(scores['weakest_driver'])}.
+                    </div>
+                    <div class="regime-summary-grid">
+                        <div class="summary-stat">
+                            <span class="summary-stat-label">Base Score</span>
+                            <span class="summary-stat-value">{scores['base_score']}/100</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="summary-stat-label">Fragility Penalty</span>
+                            <span class="summary-stat-value">-{scores['penalty']}</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="summary-stat-label">Dominant Driver</span>
+                            <span class="summary-stat-value">{clean_text(scores['dominant_driver'])}</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="summary-stat-label">Weakest Link</span>
+                            <span class="summary-stat-value">{clean_text(scores['weakest_driver'])}</span>
+                        </div>
+                    </div>
+                    <div class="contribution-list">{contribution_html}</div>
+                </div>
+                <div class="fragility-card">
+                    <div class="metric-label">Fragility Overlay</div>
+                    <div class="fragility-score">{scores['fragility']['score']}/100</div>
+                    <div class="fragility-label">{clean_text(scores['fragility']['label'])}</div>
+                    <div class="panel-copy" style="margin-top:10px">
+                        Rejim skoru ile kirilganlik ayrildi. Yani yuksek skor, otomatik olarak saglikli ve genis tabanli ortam demek degil.
+                    </div>
+                    <div class="fragility-flags">{fragility_html}</div>
+                </div>
+            </div>
+            <div class="factor-grid">{factor_html}</div>
         </div>
         """,
         unsafe_allow_html=True,
