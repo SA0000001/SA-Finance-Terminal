@@ -4,7 +4,8 @@ import streamlit as st
 from ui.components import clean_text, render_health_bar
 
 
-def render_page_header(last_updated: str, health_summary: dict, brief: dict, preferences: dict):
+def render_page_header(last_updated: str, health_summary: dict, brief: dict, preferences: dict, analytics: dict):
+    scores = analytics["scores"]
     st.markdown(
         f"""
         <div class="terminal-header">
@@ -12,21 +13,20 @@ def render_page_header(last_updated: str, health_summary: dict, brief: dict, pre
                 <div class="hero-kicker">Digital Asset Intelligence</div>
                 <h1>SA Finance Alpha Terminal</h1>
                 <div class="header-subtitle">
-                    Makrodan mikroya uzanan piyasa rontgeni, risk akisi ve alpha teyitlerini
-                    tek bir ust segment terminal deneyiminde toplar.
+                    Makro rejim, risk akis ve alpha teyitlerini gosterip bunlari tek bir karar akisina indirger.
                 </div>
                 <div class="header-summary">
                     <div class="summary-chip">
-                        <span>Piyasa Rejimi</span>
-                        <strong>{clean_text(brief["regime"]["title"])}</strong>
+                        <span>Market State</span>
+                        <strong>{clean_text(scores["overlay"])}</strong>
                     </div>
                     <div class="summary-chip">
-                        <span>Pozisyonlanma</span>
-                        <strong>{clean_text(brief["positioning"]["title"])}</strong>
+                        <span>Fragility</span>
+                        <strong>{clean_text(scores["fragility"]["label"])}</strong>
                     </div>
                     <div class="summary-chip">
-                        <span>Likidite</span>
-                        <strong>{clean_text(brief["liquidity"]["title"])}</strong>
+                        <span>Confidence</span>
+                        <strong>{scores["confidence"]}/100 | {clean_text(scores["confidence_label"])}</strong>
                     </div>
                 </div>
             </div>
@@ -38,7 +38,7 @@ def render_page_header(last_updated: str, health_summary: dict, brief: dict, pre
                 </div>
                 <div class="meta-caption">
                     Istanbul | {last_updated}<br/>
-                    Saglikli kaynak: {health_summary.get("healthy_sources", 0)}
+                    Bias | {clean_text(scores["bias"])}
                 </div>
             </div>
         </div>
