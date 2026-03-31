@@ -56,6 +56,17 @@ def _merge_result_payloads(*payloads: dict | None) -> dict:
     return merged
 
 
+def _task_failure_payload(task_name: str, exc: Exception) -> dict:
+    recorder = HealthRecorder()
+    source_map = {
+        "base": "Base Market Pipeline",
+        "derivatives": "Derivatives Pipeline",
+        "market_cap": "Market Cap Pipeline",
+    }
+    recorder.failure(source_map.get(task_name, task_name), _error_message("Task error", exc))
+    return {"_health": recorder.export()}
+
+
 def _run_parallel_tasks(task_map: dict[str, object], *, max_workers: int = 4) -> dict[str, object]:
     if not task_map:
         return {}
@@ -1725,7 +1736,11 @@ def load_terminal_data(fred_api_key=""):
         },
         max_workers=3,
     )
-    data = _merge_result_payloads(*payloads.values())
+    normalized_payloads = [
+        payload if not isinstance(payload, Exception) else _task_failure_payload(task_name, payload)
+        for task_name, payload in payloads.items()
+    ]
+    data = _merge_result_payloads(*normalized_payloads)
     if data.get("Total_Stable_Num") and data.get("TOTAL_CAP_NUM"):
         data["STABLE_C_D"] = f"%{data['Total_Stable_Num']/data['TOTAL_CAP_NUM']*100:.2f}"
     return data
