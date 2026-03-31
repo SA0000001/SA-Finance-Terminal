@@ -1,6 +1,6 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pandas as pd
 import requests
@@ -72,7 +72,9 @@ def _run_parallel_tasks(task_map: dict[str, object], *, max_workers: int = 4) ->
     return results
 
 
-def _record_fetch_error(recorder: HealthRecorder, source: str, exc: FetchError, *, stale_after_seconds: int | None = None):
+def _record_fetch_error(
+    recorder: HealthRecorder, source: str, exc: FetchError, *, stale_after_seconds: int | None = None
+):
     recorder.failure(source, str(exc), exc.latency_ms, stale_after_seconds=stale_after_seconds)
 
 
@@ -218,7 +220,9 @@ def _load_yfinance_etfs(target: dict, recorder: HealthRecorder):
         recorder.failure(source, "; ".join(failures) or "No ETF data", latency)
 
 
-def _load_yfinance_change_group(target: dict, recorder: HealthRecorder, source: str, symbols: dict[str, str], *, period: str, value_template: str):
+def _load_yfinance_change_group(
+    target: dict, recorder: HealthRecorder, source: str, symbols: dict[str, str], *, period: str, value_template: str
+):
     started_at = time.perf_counter()
     failures = []
 
@@ -237,8 +241,7 @@ def _load_yfinance_change_group(target: dict, recorder: HealthRecorder, source: 
     successes = 0
     with ThreadPoolExecutor(max_workers=min(6, len(symbols))) as executor:
         future_map = {
-            executor.submit(lambda key=key, sym=sym: fetch_symbol(key, sym)): key
-            for key, sym in symbols.items()
+            executor.submit(lambda key=key, sym=sym: fetch_symbol(key, sym)): key for key, sym in symbols.items()
         }
         for future in as_completed(future_map):
             key = future_map[future]
@@ -262,7 +265,9 @@ def _load_yfinance_change_group(target: dict, recorder: HealthRecorder, source: 
         recorder.failure(source, "; ".join(failures) or "No market data", latency)
 
 
-def _load_orderbook_source(target: dict, recorder: HealthRecorder, *, source: str, prefix: str, url: str, bid_getter, ask_getter):
+def _load_orderbook_source(
+    target: dict, recorder: HealthRecorder, *, source: str, prefix: str, url: str, bid_getter, ask_getter
+):
     response = None
     try:
         response = safe_fetch_json(source, url, timeout=8, headers=HEADERS)
@@ -399,7 +404,9 @@ def fetch_live_usdt_d():
     except FetchError as exc:
         _record_fetch_error(health, exc.source, exc)
     except DATA_PARSE_EXCEPTIONS as exc:
-        latency = ticker_response.latency_ms if ticker_response else global_response.latency_ms if global_response else None
+        latency = (
+            ticker_response.latency_ms if ticker_response else global_response.latency_ms if global_response else None
+        )
         _record_parse_error(health, "Coinpaprika USDT", exc, latency_ms=latency)
 
     result["_health"] = health.export()
@@ -525,7 +532,9 @@ def fetch_live_market_cap_segments():
     except FetchError as exc:
         _record_fetch_error(health, exc.source, exc)
     except DATA_PARSE_EXCEPTIONS as exc:
-        latency = top10_response.latency_ms if top10_response else global_response.latency_ms if global_response else None
+        latency = (
+            top10_response.latency_ms if top10_response else global_response.latency_ms if global_response else None
+        )
         _record_parse_error(health, "CoinGecko Top10", exc, latency_ms=latency)
 
     result["_health"] = health.export()
@@ -565,7 +574,9 @@ def _legacy_veri_motoru(fred_api_key=""):
             },
         )
     except DATA_PARSE_EXCEPTIONS as exc:
-        _record_parse_error(health, "Coinpaprika BTC", exc, latency_ms=btc_response.latency_ms if btc_response else None)
+        _record_parse_error(
+            health, "Coinpaprika BTC", exc, latency_ms=btc_response.latency_ms if btc_response else None
+        )
         _set_defaults(
             data,
             {
@@ -656,7 +667,9 @@ def _legacy_veri_motoru(fred_api_key=""):
             },
         )
     except DATA_PARSE_EXCEPTIONS as exc:
-        _record_parse_error(health, "Coinpaprika Global", exc, latency_ms=global_response.latency_ms if global_response else None)
+        _record_parse_error(
+            health, "Coinpaprika Global", exc, latency_ms=global_response.latency_ms if global_response else None
+        )
         _set_defaults(
             data,
             {
@@ -676,7 +689,11 @@ def _legacy_veri_motoru(fred_api_key=""):
             headers=HEADERS,
         )
         dom_val = float(data["Dom"].replace("%", "")) if data.get("Dom") != PLACEHOLDER else 0
-        btc_mc = float(data["BTC_MCap"].replace("$", "").replace("B", "")) * 1e9 if data.get("BTC_MCap") != PLACEHOLDER else 0
+        btc_mc = (
+            float(data["BTC_MCap"].replace("$", "").replace("B", "")) * 1e9
+            if data.get("BTC_MCap") != PLACEHOLDER
+            else 0
+        )
         total_mc = btc_mc / (dom_val / 100) if dom_val > 0 else 0
         if total_mc > 0:
             eth_market_cap = float(eth_dom_response.payload["quotes"]["USD"]["market_cap"])
@@ -945,7 +962,13 @@ def _legacy_veri_motoru(fred_api_key=""):
             _record_fetch_error(health, "FRED M2", exc, stale_after_seconds=21600)
             data["M2"] = PLACEHOLDER
         except DATA_PARSE_EXCEPTIONS as exc:
-            _record_parse_error(health, "FRED M2", exc, latency_ms=m2_response.latency_ms if m2_response else None, stale_after_seconds=21600)
+            _record_parse_error(
+                health,
+                "FRED M2",
+                exc,
+                latency_ms=m2_response.latency_ms if m2_response else None,
+                stale_after_seconds=21600,
+            )
             data["M2"] = PLACEHOLDER
 
         fed_response = None
@@ -1109,7 +1132,9 @@ def _fetch_market_snapshot():
 
     btc_response = None
     try:
-        btc_response = safe_fetch_json("Coinpaprika BTC", "https://api.coinpaprika.com/v1/tickers/btc-bitcoin", timeout=8, headers=HEADERS)
+        btc_response = safe_fetch_json(
+            "Coinpaprika BTC", "https://api.coinpaprika.com/v1/tickers/btc-bitcoin", timeout=8, headers=HEADERS
+        )
         usd_quote = btc_response.payload["quotes"]["USD"]
         data["BTC_P"] = f"${usd_quote['price']:,.0f}"
         data["BTC_C"] = f"{usd_quote['percent_change_24h']:.2f}%"
@@ -1119,10 +1144,30 @@ def _fetch_market_snapshot():
         health.success("Coinpaprika BTC", btc_response.latency_ms)
     except FetchError as exc:
         _record_fetch_error(health, "Coinpaprika BTC", exc)
-        _set_defaults(data, {"BTC_P": PLACEHOLDER, "BTC_C": PLACEHOLDER, "BTC_7D": PLACEHOLDER, "Vol_24h": PLACEHOLDER, "BTC_MCap": PLACEHOLDER})
+        _set_defaults(
+            data,
+            {
+                "BTC_P": PLACEHOLDER,
+                "BTC_C": PLACEHOLDER,
+                "BTC_7D": PLACEHOLDER,
+                "Vol_24h": PLACEHOLDER,
+                "BTC_MCap": PLACEHOLDER,
+            },
+        )
     except DATA_PARSE_EXCEPTIONS as exc:
-        _record_parse_error(health, "Coinpaprika BTC", exc, latency_ms=btc_response.latency_ms if btc_response else None)
-        _set_defaults(data, {"BTC_P": PLACEHOLDER, "BTC_C": PLACEHOLDER, "BTC_7D": PLACEHOLDER, "Vol_24h": PLACEHOLDER, "BTC_MCap": PLACEHOLDER})
+        _record_parse_error(
+            health, "Coinpaprika BTC", exc, latency_ms=btc_response.latency_ms if btc_response else None
+        )
+        _set_defaults(
+            data,
+            {
+                "BTC_P": PLACEHOLDER,
+                "BTC_C": PLACEHOLDER,
+                "BTC_7D": PLACEHOLDER,
+                "Vol_24h": PLACEHOLDER,
+                "BTC_MCap": PLACEHOLDER,
+            },
+        )
 
     alt_ids = {
         "ETH": "eth-ethereum",
@@ -1142,7 +1187,12 @@ def _fetch_market_snapshot():
             executor.submit(
                 lambda sym=sym, cid=cid: (
                     sym,
-                    safe_fetch_json("Coinpaprika Altcoins", f"https://api.coinpaprika.com/v1/tickers/{cid}", timeout=6, headers=HEADERS),
+                    safe_fetch_json(
+                        "Coinpaprika Altcoins",
+                        f"https://api.coinpaprika.com/v1/tickers/{cid}",
+                        timeout=6,
+                        headers=HEADERS,
+                    ),
                 )
             ): sym
             for sym, cid in alt_ids.items()
@@ -1171,7 +1221,9 @@ def _fetch_market_snapshot():
 
     global_response = None
     try:
-        global_response = safe_fetch_json("Coinpaprika Global", "https://api.coinpaprika.com/v1/global", timeout=6, headers=HEADERS)
+        global_response = safe_fetch_json(
+            "Coinpaprika Global", "https://api.coinpaprika.com/v1/global", timeout=6, headers=HEADERS
+        )
         payload = global_response.payload
         data["Total_MCap_Num"] = payload["market_cap_usd"]
         data["Dom"] = f"%{payload['bitcoin_dominance_percentage']:.2f}"
@@ -1180,16 +1232,31 @@ def _fetch_market_snapshot():
         health.success("Coinpaprika Global", global_response.latency_ms)
     except FetchError as exc:
         _record_fetch_error(health, "Coinpaprika Global", exc)
-        _set_defaults(data, {"Dom": PLACEHOLDER, "Total_MCap": PLACEHOLDER, "Total_Vol": PLACEHOLDER, "Total_MCap_Num": None})
+        _set_defaults(
+            data, {"Dom": PLACEHOLDER, "Total_MCap": PLACEHOLDER, "Total_Vol": PLACEHOLDER, "Total_MCap_Num": None}
+        )
     except DATA_PARSE_EXCEPTIONS as exc:
-        _record_parse_error(health, "Coinpaprika Global", exc, latency_ms=global_response.latency_ms if global_response else None)
-        _set_defaults(data, {"Dom": PLACEHOLDER, "Total_MCap": PLACEHOLDER, "Total_Vol": PLACEHOLDER, "Total_MCap_Num": None})
+        _record_parse_error(
+            health, "Coinpaprika Global", exc, latency_ms=global_response.latency_ms if global_response else None
+        )
+        _set_defaults(
+            data, {"Dom": PLACEHOLDER, "Total_MCap": PLACEHOLDER, "Total_Vol": PLACEHOLDER, "Total_MCap_Num": None}
+        )
 
     eth_dom_response = None
     try:
-        eth_dom_response = safe_fetch_json("Coinpaprika ETH Dominance", "https://api.coinpaprika.com/v1/tickers/eth-ethereum", timeout=5, headers=HEADERS)
+        eth_dom_response = safe_fetch_json(
+            "Coinpaprika ETH Dominance",
+            "https://api.coinpaprika.com/v1/tickers/eth-ethereum",
+            timeout=5,
+            headers=HEADERS,
+        )
         dom_val = float(data["Dom"].replace("%", "")) if data.get("Dom") != PLACEHOLDER else 0
-        btc_mc = float(data["BTC_MCap"].replace("$", "").replace("B", "")) * 1e9 if data.get("BTC_MCap") != PLACEHOLDER else 0
+        btc_mc = (
+            float(data["BTC_MCap"].replace("$", "").replace("B", "")) * 1e9
+            if data.get("BTC_MCap") != PLACEHOLDER
+            else 0
+        )
         total_mc = btc_mc / (dom_val / 100) if dom_val > 0 else 0
         if total_mc > 0:
             data["ETH_Dom"] = f"%{float(eth_dom_response.payload['quotes']['USD']['market_cap'])/total_mc*100:.2f}"
@@ -1200,14 +1267,59 @@ def _fetch_market_snapshot():
         _record_fetch_error(health, "Coinpaprika ETH Dominance", exc)
         data["ETH_Dom"] = PLACEHOLDER
     except DATA_PARSE_EXCEPTIONS as exc:
-        _record_parse_error(health, "Coinpaprika ETH Dominance", exc, latency_ms=eth_dom_response.latency_ms if eth_dom_response else None)
+        _record_parse_error(
+            health,
+            "Coinpaprika ETH Dominance",
+            exc,
+            latency_ms=eth_dom_response.latency_ms if eth_dom_response else None,
+        )
         data["ETH_Dom"] = PLACEHOLDER
 
     yfinance_tasks = {
         "etfs": lambda: _load_yfinance_etfs(data, health),
-        "indices": lambda: _load_yfinance_change_group(data, health, "yFinance Indices", {"SP500": "^GSPC", "NASDAQ": "^IXIC", "DOW": "^DJI", "DAX": "^GDAXI", "FTSE": "^FTSE", "NIKKEI": "^N225", "HSI": "^HSI", "BIST100": "XU100.IS", "VIX": "^VIX"}, period="5d", value_template="{value:,.2f}"),
-        "commodities": lambda: _load_yfinance_change_group(data, health, "yFinance Commodities", {"GOLD": "GC=F", "SILVER": "SI=F", "OIL": "CL=F", "NATGAS": "NG=F", "COPPER": "HG=F", "WHEAT": "ZW=F"}, period="5d", value_template="${value:,.2f}"),
-        "fx": lambda: _load_yfinance_change_group(data, health, "yFinance FX", {"DXY": "DX-Y.NYB", "EURUSD": "EURUSD=X", "GBPUSD": "GBPUSD=X", "USDJPY": "JPY=X", "USDTRY": "TRY=X", "USDCHF": "CHF=X", "AUDUSD": "AUDUSD=X", "US10Y": "^TNX"}, period="5d", value_template="{value:.4f}"),
+        "indices": lambda: _load_yfinance_change_group(
+            data,
+            health,
+            "yFinance Indices",
+            {
+                "SP500": "^GSPC",
+                "NASDAQ": "^IXIC",
+                "DOW": "^DJI",
+                "DAX": "^GDAXI",
+                "FTSE": "^FTSE",
+                "NIKKEI": "^N225",
+                "HSI": "^HSI",
+                "BIST100": "XU100.IS",
+                "VIX": "^VIX",
+            },
+            period="5d",
+            value_template="{value:,.2f}",
+        ),
+        "commodities": lambda: _load_yfinance_change_group(
+            data,
+            health,
+            "yFinance Commodities",
+            {"GOLD": "GC=F", "SILVER": "SI=F", "OIL": "CL=F", "NATGAS": "NG=F", "COPPER": "HG=F", "WHEAT": "ZW=F"},
+            period="5d",
+            value_template="${value:,.2f}",
+        ),
+        "fx": lambda: _load_yfinance_change_group(
+            data,
+            health,
+            "yFinance FX",
+            {
+                "DXY": "DX-Y.NYB",
+                "EURUSD": "EURUSD=X",
+                "GBPUSD": "GBPUSD=X",
+                "USDJPY": "JPY=X",
+                "USDTRY": "TRY=X",
+                "USDCHF": "CHF=X",
+                "AUDUSD": "AUDUSD=X",
+                "US10Y": "^TNX",
+            },
+            period="5d",
+            value_template="{value:.4f}",
+        ),
     }
     _run_parallel_tasks(yfinance_tasks, max_workers=4)
 
@@ -1232,7 +1344,11 @@ def _fetch_market_snapshot():
     data["ETF_FLOW_DATE"] = PLACEHOLDER
     data["ETF_FLOW_SOURCE"] = PLACEHOLDER
     flow_failures = []
-    for flow_url in ["https://r.jina.ai/http://farside.co.uk/bitcoin-etf-flow-all-data/", "https://r.jina.ai/http://farside.co.uk/btc/", "https://farside.co.uk/bitcoin-etf-flow-all-data/"]:
+    for flow_url in [
+        "https://r.jina.ai/http://farside.co.uk/bitcoin-etf-flow-all-data/",
+        "https://r.jina.ai/http://farside.co.uk/btc/",
+        "https://farside.co.uk/bitcoin-etf-flow-all-data/",
+    ]:
         try:
             response = safe_fetch_text("Farside ETF Flow", flow_url, timeout=20, headers=HEADERS, accept=TEXT_ACCEPT)
             latest_row = parse_latest_etf_flow_row(response.payload)
@@ -1249,7 +1365,9 @@ def _fetch_market_snapshot():
         except (TypeError, ValueError) as exc:
             flow_failures.append(_error_message("Parse error", exc))
     else:
-        health.failure("Farside ETF Flow", "; ".join(flow_failures) or "ETF flow source unavailable", stale_after_seconds=43200)
+        health.failure(
+            "Farside ETF Flow", "; ".join(flow_failures) or "ETF flow source unavailable", stale_after_seconds=43200
+        )
 
     data["_health"] = health.export()
     return data
@@ -1261,11 +1379,51 @@ def _fetch_orderbook_snapshot():
     health = HealthRecorder()
     _run_parallel_tasks(
         {
-            "kraken": lambda: _load_orderbook_source(data, health, source="Kraken Order Book", prefix="", url="https://api.kraken.com/0/public/Depth?pair=XBTUSD&count=500", bid_getter=lambda payload: payload["result"][list(payload["result"].keys())[0]]["bids"], ask_getter=lambda payload: payload["result"][list(payload["result"].keys())[0]]["asks"]),
-            "okx": lambda: _load_orderbook_source(data, health, source="OKX Order Book", prefix="OKX", url="https://www.okx.com/api/v5/market/books?instId=BTC-USDT&sz=400", bid_getter=lambda payload: payload["data"][0]["bids"], ask_getter=lambda payload: payload["data"][0]["asks"]),
-            "kucoin": lambda: _load_orderbook_source(data, health, source="KuCoin Order Book", prefix="KUCOIN", url="https://api.kucoin.com/api/v1/market/orderbook/level2_100?symbol=BTC-USDT", bid_getter=lambda payload: payload["data"]["bids"], ask_getter=lambda payload: payload["data"]["asks"]),
-            "gate": lambda: _load_orderbook_source(data, health, source="Gate.io Order Book", prefix="GATE", url="https://api.gateio.ws/api/v4/spot/order_book?currency_pair=BTC_USDT&limit=200&with_id=true", bid_getter=lambda payload: payload["bids"], ask_getter=lambda payload: payload["asks"]),
-            "coinbase": lambda: _load_orderbook_source(data, health, source="Coinbase Order Book", prefix="COINBASE", url="https://api.exchange.coinbase.com/products/BTC-USD/book?level=2", bid_getter=lambda payload: payload["bids"], ask_getter=lambda payload: payload["asks"]),
+            "kraken": lambda: _load_orderbook_source(
+                data,
+                health,
+                source="Kraken Order Book",
+                prefix="",
+                url="https://api.kraken.com/0/public/Depth?pair=XBTUSD&count=500",
+                bid_getter=lambda payload: payload["result"][list(payload["result"].keys())[0]]["bids"],
+                ask_getter=lambda payload: payload["result"][list(payload["result"].keys())[0]]["asks"],
+            ),
+            "okx": lambda: _load_orderbook_source(
+                data,
+                health,
+                source="OKX Order Book",
+                prefix="OKX",
+                url="https://www.okx.com/api/v5/market/books?instId=BTC-USDT&sz=400",
+                bid_getter=lambda payload: payload["data"][0]["bids"],
+                ask_getter=lambda payload: payload["data"][0]["asks"],
+            ),
+            "kucoin": lambda: _load_orderbook_source(
+                data,
+                health,
+                source="KuCoin Order Book",
+                prefix="KUCOIN",
+                url="https://api.kucoin.com/api/v1/market/orderbook/level2_100?symbol=BTC-USDT",
+                bid_getter=lambda payload: payload["data"]["bids"],
+                ask_getter=lambda payload: payload["data"]["asks"],
+            ),
+            "gate": lambda: _load_orderbook_source(
+                data,
+                health,
+                source="Gate.io Order Book",
+                prefix="GATE",
+                url="https://api.gateio.ws/api/v4/spot/order_book?currency_pair=BTC_USDT&limit=200&with_id=true",
+                bid_getter=lambda payload: payload["bids"],
+                ask_getter=lambda payload: payload["asks"],
+            ),
+            "coinbase": lambda: _load_orderbook_source(
+                data,
+                health,
+                source="Coinbase Order Book",
+                prefix="COINBASE",
+                url="https://api.exchange.coinbase.com/products/BTC-USD/book?level=2",
+                bid_getter=lambda payload: payload["bids"],
+                ask_getter=lambda payload: payload["asks"],
+            ),
         },
         max_workers=5,
     )
@@ -1285,7 +1443,12 @@ def _fetch_stablecoin_snapshot():
     health = HealthRecorder()
     stablecoin_response = None
     try:
-        stablecoin_response = safe_fetch_json("DeFiLlama Stablecoins", "https://stablecoins.llama.fi/stablecoins?includePrices=true", timeout=8, headers=HEADERS)
+        stablecoin_response = safe_fetch_json(
+            "DeFiLlama Stablecoins",
+            "https://stablecoins.llama.fi/stablecoins?includePrices=true",
+            timeout=8,
+            headers=HEADERS,
+        )
         pegged_assets = stablecoin_response.payload["peggedAssets"]
         total = sum(item.get("circulating", {}).get("peggedUSD", 0) for item in pegged_assets)
 
@@ -1306,10 +1469,38 @@ def _fetch_stablecoin_snapshot():
         health.success("DeFiLlama Stablecoins", stablecoin_response.latency_ms, stale_after_seconds=21600)
     except FetchError as exc:
         _record_fetch_error(health, "DeFiLlama Stablecoins", exc, stale_after_seconds=21600)
-        _set_defaults(data, {"Total_Stable": PLACEHOLDER, "USDT_MCap": PLACEHOLDER, "USDC_MCap": PLACEHOLDER, "DAI_MCap": PLACEHOLDER, "USDT_Dom_Stable": PLACEHOLDER, "Total_Stable_Num": None, "STABLE_C_D": PLACEHOLDER})
+        _set_defaults(
+            data,
+            {
+                "Total_Stable": PLACEHOLDER,
+                "USDT_MCap": PLACEHOLDER,
+                "USDC_MCap": PLACEHOLDER,
+                "DAI_MCap": PLACEHOLDER,
+                "USDT_Dom_Stable": PLACEHOLDER,
+                "Total_Stable_Num": None,
+                "STABLE_C_D": PLACEHOLDER,
+            },
+        )
     except DATA_PARSE_EXCEPTIONS as exc:
-        _record_parse_error(health, "DeFiLlama Stablecoins", exc, latency_ms=stablecoin_response.latency_ms if stablecoin_response else None, stale_after_seconds=21600)
-        _set_defaults(data, {"Total_Stable": PLACEHOLDER, "USDT_MCap": PLACEHOLDER, "USDC_MCap": PLACEHOLDER, "DAI_MCap": PLACEHOLDER, "USDT_Dom_Stable": PLACEHOLDER, "Total_Stable_Num": None, "STABLE_C_D": PLACEHOLDER})
+        _record_parse_error(
+            health,
+            "DeFiLlama Stablecoins",
+            exc,
+            latency_ms=stablecoin_response.latency_ms if stablecoin_response else None,
+            stale_after_seconds=21600,
+        )
+        _set_defaults(
+            data,
+            {
+                "Total_Stable": PLACEHOLDER,
+                "USDT_MCap": PLACEHOLDER,
+                "USDC_MCap": PLACEHOLDER,
+                "DAI_MCap": PLACEHOLDER,
+                "USDT_Dom_Stable": PLACEHOLDER,
+                "Total_Stable_Num": None,
+                "STABLE_C_D": PLACEHOLDER,
+            },
+        )
     data["_health"] = health.export()
     return data
 
@@ -1363,7 +1554,9 @@ def _fetch_macro_snapshot(fred_api_key=""):
             data["FED"] = f"%{observations[0]['value']}"
             health.success("FRED FEDFUNDS", fed_response.latency_ms, stale_after_seconds=21600)
         except DATA_PARSE_EXCEPTIONS as exc:
-            _record_parse_error(health, "FRED FEDFUNDS", exc, latency_ms=fed_response.latency_ms, stale_after_seconds=21600)
+            _record_parse_error(
+                health, "FRED FEDFUNDS", exc, latency_ms=fed_response.latency_ms, stale_after_seconds=21600
+            )
             data["FED"] = PLACEHOLDER
 
     data["_health"] = health.export()
@@ -1385,7 +1578,13 @@ def _fetch_onchain_snapshot():
         _record_fetch_error(health, "Blockchain Stats", exc, stale_after_seconds=3600)
         _set_defaults(data, {"Hash": PLACEHOLDER, "Active": PLACEHOLDER})
     except DATA_PARSE_EXCEPTIONS as exc:
-        _record_parse_error(health, "Blockchain Stats", exc, latency_ms=response.latency_ms if response else None, stale_after_seconds=3600)
+        _record_parse_error(
+            health,
+            "Blockchain Stats",
+            exc,
+            latency_ms=response.latency_ms if response else None,
+            stale_after_seconds=3600,
+        )
         _set_defaults(data, {"Hash": PLACEHOLDER, "Active": PLACEHOLDER})
     data["_health"] = health.export()
     return data
@@ -1397,7 +1596,9 @@ def _fetch_sentiment_snapshot():
     health = HealthRecorder()
     fng_response = None
     try:
-        fng_response = safe_fetch_json("Alternative.me FNG", "https://api.alternative.me/fng/?limit=2", timeout=5, headers=HEADERS)
+        fng_response = safe_fetch_json(
+            "Alternative.me FNG", "https://api.alternative.me/fng/?limit=2", timeout=5, headers=HEADERS
+        )
         fng = fng_response.payload["data"]
         data["FNG"] = f"{fng[0]['value']} ({fng[0]['value_classification']})"
         data["FNG_PREV"] = f"{fng[1]['value']} ({fng[1]['value_classification']})"
@@ -1407,37 +1608,82 @@ def _fetch_sentiment_snapshot():
         _record_fetch_error(health, "Alternative.me FNG", exc, stale_after_seconds=1800)
         _set_defaults(data, {"FNG": PLACEHOLDER, "FNG_PREV": PLACEHOLDER, "FNG_NUM": 0})
     except DATA_PARSE_EXCEPTIONS as exc:
-        _record_parse_error(health, "Alternative.me FNG", exc, latency_ms=fng_response.latency_ms if fng_response else None, stale_after_seconds=1800)
+        _record_parse_error(
+            health,
+            "Alternative.me FNG",
+            exc,
+            latency_ms=fng_response.latency_ms if fng_response else None,
+            stale_after_seconds=1800,
+        )
         _set_defaults(data, {"FNG": PLACEHOLDER, "FNG_PREV": PLACEHOLDER, "FNG_NUM": 0})
 
     coindesk_response = None
     try:
-        coindesk_response = safe_fetch_text("CoinDesk News", "https://www.coindesk.com/arc/outboundfeeds/rss/", timeout=8, headers=HEADERS, accept=TEXT_ACCEPT)
+        coindesk_response = safe_fetch_text(
+            "CoinDesk News",
+            "https://www.coindesk.com/arc/outboundfeeds/rss/",
+            timeout=8,
+            headers=HEADERS,
+            accept=TEXT_ACCEPT,
+        )
         titles = re.findall(r"<title><!\[CDATA\[(.*?)\]\]></title>", coindesk_response.payload)[1:11]
         links = re.findall(r"<link>(https://www\.coindesk\.com.*?)</link>", coindesk_response.payload)[:10]
         dates = re.findall(r"<pubDate>(.*?)</pubDate>", coindesk_response.payload)[:10]
         if not titles:
             raise ValueError("CoinDesk RSS is empty")
-        data["NEWS"] = [{"title": title, "url": links[i] if i < len(links) else "#", "source": "CoinDesk", "time": dates[i][:16] if i < len(dates) else ""} for i, title in enumerate(titles)]
+        data["NEWS"] = [
+            {
+                "title": title,
+                "url": links[i] if i < len(links) else "#",
+                "source": "CoinDesk",
+                "time": dates[i][:16] if i < len(dates) else "",
+            }
+            for i, title in enumerate(titles)
+        ]
         health.success("CoinDesk News", coindesk_response.latency_ms, stale_after_seconds=1800)
     except FetchError as exc:
         _record_fetch_error(health, "CoinDesk News", exc, stale_after_seconds=1800)
         data["NEWS"] = []
     except (TypeError, ValueError) as exc:
-        _record_parse_error(health, "CoinDesk News", exc, latency_ms=coindesk_response.latency_ms if coindesk_response else None, stale_after_seconds=1800)
+        _record_parse_error(
+            health,
+            "CoinDesk News",
+            exc,
+            latency_ms=coindesk_response.latency_ms if coindesk_response else None,
+            stale_after_seconds=1800,
+        )
         data["NEWS"] = []
 
     if not data.get("NEWS"):
         cryptocompare_response = None
         try:
-            cryptocompare_response = safe_fetch_json("CryptoCompare News", "https://min-api.cryptocompare.com/data/v2/news/?lang=EN&sortOrder=latest&limit=10", timeout=6, headers=HEADERS)
-            data["NEWS"] = [{"title": news["title"], "url": news["url"], "source": news["source_info"]["name"], "time": pd.Timestamp(news["published_on"], unit="s").strftime("%d %b %H:%M")} for news in cryptocompare_response.payload["Data"][:10]]
+            cryptocompare_response = safe_fetch_json(
+                "CryptoCompare News",
+                "https://min-api.cryptocompare.com/data/v2/news/?lang=EN&sortOrder=latest&limit=10",
+                timeout=6,
+                headers=HEADERS,
+            )
+            data["NEWS"] = [
+                {
+                    "title": news["title"],
+                    "url": news["url"],
+                    "source": news["source_info"]["name"],
+                    "time": pd.Timestamp(news["published_on"], unit="s").strftime("%d %b %H:%M"),
+                }
+                for news in cryptocompare_response.payload["Data"][:10]
+            ]
             health.success("CryptoCompare News", cryptocompare_response.latency_ms, stale_after_seconds=1800)
         except FetchError as exc:
             _record_fetch_error(health, "CryptoCompare News", exc, stale_after_seconds=1800)
             data["NEWS"] = []
         except DATA_PARSE_EXCEPTIONS as exc:
-            _record_parse_error(health, "CryptoCompare News", exc, latency_ms=cryptocompare_response.latency_ms if cryptocompare_response else None, stale_after_seconds=1800)
+            _record_parse_error(
+                health,
+                "CryptoCompare News",
+                exc,
+                latency_ms=cryptocompare_response.latency_ms if cryptocompare_response else None,
+                stale_after_seconds=1800,
+            )
             data["NEWS"] = []
 
     data["_health"] = health.export()
@@ -1484,6 +1730,7 @@ def load_terminal_data(fred_api_key=""):
         data["STABLE_C_D"] = f"%{data['Total_Stable_Num']/data['TOTAL_CAP_NUM']*100:.2f}"
     return data
 
+
 @st.cache_data(ttl=FAST_TTL)
 def turev_cek():
     data = {}
@@ -1503,7 +1750,13 @@ def turev_cek():
         _record_fetch_error(health, "OKX Funding", exc, stale_after_seconds=300)
         data["FR"] = PLACEHOLDER
     except DATA_PARSE_EXCEPTIONS as exc:
-        _record_parse_error(health, "OKX Funding", exc, latency_ms=funding_response.latency_ms if funding_response else None, stale_after_seconds=300)
+        _record_parse_error(
+            health,
+            "OKX Funding",
+            exc,
+            latency_ms=funding_response.latency_ms if funding_response else None,
+            stale_after_seconds=300,
+        )
         data["FR"] = PLACEHOLDER
 
     open_interest_response = None

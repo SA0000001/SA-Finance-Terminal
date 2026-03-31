@@ -13,11 +13,19 @@ def extract_wall_levels(bids, asks, noise=250, bucket_size=100):
 
     current_price = bids[0][0]
     max_distance = current_price * 0.08
-    sane_bids = [(price, qty) for price, qty in bids if 0 < price <= current_price and (current_price - price) <= max_distance] or bids
-    sane_asks = [(price, qty) for price, qty in asks if price >= current_price and (price - current_price) <= max_distance] or asks
+    sane_bids = [
+        (price, qty) for price, qty in bids if 0 < price <= current_price and (current_price - price) <= max_distance
+    ] or bids
+    sane_asks = [
+        (price, qty) for price, qty in asks if price >= current_price and (price - current_price) <= max_distance
+    ] or asks
 
-    filtered_bids = [(price, qty) for price, qty in sane_bids if price < current_price - noise] or sane_bids[len(sane_bids) // 2 :]
-    filtered_asks = [(price, qty) for price, qty in sane_asks if price > current_price + noise] or sane_asks[len(sane_asks) // 2 :]
+    filtered_bids = [(price, qty) for price, qty in sane_bids if price < current_price - noise] or sane_bids[
+        len(sane_bids) // 2 :
+    ]
+    filtered_asks = [(price, qty) for price, qty in sane_asks if price > current_price + noise] or sane_asks[
+        len(sane_asks) // 2 :
+    ]
 
     def strongest_bucket(levels, bucket_fn):
         buckets = {}
@@ -26,8 +34,12 @@ def extract_wall_levels(bids, asks, noise=250, bucket_size=100):
             buckets[bucket_key] = buckets.get(bucket_key, 0.0) + qty
         return max(buckets.items(), key=lambda item: item[1])
 
-    support_price, support_volume = strongest_bucket(filtered_bids, lambda price: int(price / bucket_size) * bucket_size)
-    resistance_price, resistance_volume = strongest_bucket(filtered_asks, lambda price: int((price / bucket_size) + 1) * bucket_size)
+    support_price, support_volume = strongest_bucket(
+        filtered_bids, lambda price: int(price / bucket_size) * bucket_size
+    )
+    resistance_price, resistance_volume = strongest_bucket(
+        filtered_asks, lambda price: int((price / bucket_size) + 1) * bucket_size
+    )
 
     distance_support = current_price - support_price
     distance_resistance = resistance_price - current_price

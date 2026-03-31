@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 import requests
 
-
 LOGGER = logging.getLogger("sa_finance_terminal.data")
 if not LOGGER.handlers:
     handler = logging.StreamHandler()
@@ -65,7 +64,9 @@ def safe_fetch_json(source: str, url: str, *, timeout: int = 10, headers: dict |
         session.close()
 
 
-def safe_fetch_text(source: str, url: str, *, timeout: int = 10, headers: dict | None = None, accept: str | None = None) -> FetchResponse:
+def safe_fetch_text(
+    source: str, url: str, *, timeout: int = 10, headers: dict | None = None, accept: str | None = None
+) -> FetchResponse:
     session = requests.Session()
     session.trust_env = False
     request_headers = dict(headers or {})

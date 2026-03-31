@@ -65,9 +65,11 @@ def build_market_brief(data):
             "class": badge_class(ls_signal),
         }
 
-    liquidity_pressure = max(
-        value for value in [usdt_d, stable_c_d] if value is not None
-    ) if any(value is not None for value in [usdt_d, stable_c_d]) else None
+    liquidity_pressure = (
+        max(value for value in [usdt_d, stable_c_d] if value is not None)
+        if any(value is not None for value in [usdt_d, stable_c_d])
+        else None
+    )
 
     liquidity_detail = (
         f"ETF Netflow {etf_flow_total} · {etf_flow_date} · "
@@ -82,7 +84,9 @@ def build_market_brief(data):
             "badge": "FLOW",
             "class": "signal-long",
         }
-    elif (etf_flow_num is not None and etf_flow_num < 0) or (liquidity_pressure is not None and liquidity_pressure >= 7):
+    elif (etf_flow_num is not None and etf_flow_num < 0) or (
+        liquidity_pressure is not None and liquidity_pressure >= 7
+    ):
         liquidity = {
             "label": "Likidite",
             "title": "Savunmacı Konumlanma",

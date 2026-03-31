@@ -18,7 +18,10 @@ def parse_iso_datetime(value: str | None) -> datetime | None:
 
 def stale_after_for_source(source: str) -> int:
     source_lower = source.lower()
-    if any(keyword in source_lower for keyword in ("order book", "funding", "open interest", "taker", "long/short", "usdt.d", "market cap")):
+    if any(
+        keyword in source_lower
+        for keyword in ("order book", "funding", "open interest", "taker", "long/short", "usdt.d", "market cap")
+    ):
         return 300
     if any(keyword in source_lower for keyword in ("etf flow", "farside")):
         return 43200
@@ -83,7 +86,11 @@ def merge_source_health(previous: dict[str, dict] | None, latest: dict[str, dict
         merged_entry = dict(merged.get(source, {}))
         merged_entry.update(entry)
         merged_entry["source"] = source
-        merged_entry["stale_after_seconds"] = entry.get("stale_after_seconds") or merged_entry.get("stale_after_seconds") or stale_after_for_source(source)
+        merged_entry["stale_after_seconds"] = (
+            entry.get("stale_after_seconds")
+            or merged_entry.get("stale_after_seconds")
+            or stale_after_for_source(source)
+        )
 
         if entry.get("ok"):
             merged_entry["last_success_at"] = entry.get("last_success_at") or entry.get("fetched_at")
