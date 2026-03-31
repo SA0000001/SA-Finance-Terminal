@@ -31,82 +31,145 @@ st.set_page_config(
     page_title="SA Finance Alpha Terminal",
     page_icon="SA",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 st.markdown(
     """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap');
 
 :root {
-    --bg: #070d1a;
-    --bg2: #0b1425;
-    --bg3: #0f1e35;
-    --border: #1a2d4a;
-    --accent: #00e5ff;
-    --accent2: #ff6b35;
-    --green: #00ff88;
-    --red: #ff3b5c;
-    --yellow: #ffd600;
-    --text: #c8d8e8;
-    --muted: #4a6080;
-    --mono: 'Space Mono', monospace;
-    --sans: 'Syne', sans-serif;
+    --bg: #07111f;
+    --bg2: #0b1626;
+    --bg3: #102136;
+    --panel: rgba(10, 18, 30, 0.82);
+    --panel-strong: rgba(12, 24, 39, 0.95);
+    --border: rgba(126, 158, 197, 0.16);
+    --border-strong: rgba(126, 158, 197, 0.28);
+    --accent: #59d4ff;
+    --accent-soft: rgba(89, 212, 255, 0.14);
+    --green: #38d996;
+    --red: #ff7384;
+    --yellow: #f1c56c;
+    --text: #f4f7fb;
+    --muted: #92a6bf;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Manrope', sans-serif;
 }
 
 html, body, [data-testid="stAppViewContainer"] {
-    background-color: var(--bg) !important;
+    background:
+        radial-gradient(circle at top right, rgba(89, 212, 255, 0.08), transparent 26%),
+        linear-gradient(180deg, #07111f 0%, #091321 100%) !important;
     font-family: var(--sans) !important;
     color: var(--text) !important;
 }
 
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #070d1a 0%, #0b1425 100%) !important;
+    background: linear-gradient(180deg, #081221 0%, #0c1728 100%) !important;
     border-right: 1px solid var(--border) !important;
+}
+
+[data-testid="block-container"] {
+    padding-top: 1.5rem;
+    padding-bottom: 3rem;
 }
 
 #MainMenu, footer, header { visibility: hidden; }
 
 .terminal-header {
-    justify-content: space-between;
-    align-items: flex-end;
-    padding: 28px 32px;
-    margin: 10px 0 18px 0;
-    border: 1px solid rgba(38, 71, 115, 0.9);
-    border-radius: 20px;
-    background:
-        radial-gradient(circle at top right, rgba(0,229,255,0.18), transparent 30%),
-        linear-gradient(135deg, rgba(11,20,37,0.98) 0%, rgba(10,29,54,0.96) 100%);
-    box-shadow: 0 18px 55px rgba(0,0,0,0.28);
     display: flex;
-    gap: 18px;
+    justify-content: space-between;
+    align-items: stretch;
+    padding: 30px 32px;
+    margin: 8px 0 16px 0;
+    border: 1px solid var(--border-strong);
+    border-radius: 24px;
+    background:
+        radial-gradient(circle at top right, rgba(89, 212, 255, 0.14), transparent 30%),
+        linear-gradient(135deg, rgba(10, 18, 31, 0.98) 0%, rgba(10, 27, 43, 0.98) 100%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
+    gap: 24px;
 }
 
-.hero-kicker, .cat-header, .metric-label, .header-pill, .health-pill {
+.hero-kicker, .section-heading, .metric-label, .header-pill, .health-pill, .score-label, .table-head {
     font-family: var(--mono);
 }
 
 .hero-kicker {
-    font-size: 0.72em;
-    letter-spacing: 2px;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--accent);
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
 .terminal-header h1 {
     margin: 0;
     color: #ffffff;
-    font-size: 2.1rem;
+    font-size: 2.45rem;
+    line-height: 1.02;
+    letter-spacing: -0.05em;
+    max-width: 12ch;
+}
+
+.header-copy {
+    display: grid;
+    gap: 12px;
 }
 
 .header-subtitle, .section-lead, .panel-copy, .overview-detail, .why-item {
+    color: var(--muted);
+    opacity: 0.98;
+}
+
+.header-subtitle {
+    max-width: 70ch;
+    font-size: 0.96rem;
+    line-height: 1.7;
+}
+
+.header-summary {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.summary-chip {
+    min-width: 168px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(126, 158, 197, 0.12);
+}
+
+.summary-chip span {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
+.summary-chip strong {
+    display: block;
     color: var(--text);
-    opacity: 0.85;
+    font-size: 0.96rem;
+    line-height: 1.45;
 }
 
 .header-meta {
+    min-width: 260px;
+    display: grid;
+    align-content: space-between;
+    justify-items: end;
+    gap: 16px;
+}
+
+.meta-stack {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -123,16 +186,25 @@ html, body, [data-testid="stAppViewContainer"] {
     border: 1px solid rgba(55, 91, 137, 0.9);
     background: rgba(7, 16, 30, 0.78);
     color: #eff8ff;
-    font-size: 0.74em;
+    font-size: 0.72rem;
 }
 
-.badge {
+.status-badge {
     background: var(--accent);
-    color: #000;
-    padding: 8px 12px;
-    border-radius: 8px;
+    color: #041624;
+    padding: 9px 12px;
+    border-radius: 999px;
     font-weight: 700;
     font-family: var(--mono);
+    letter-spacing: 0.02em;
+}
+
+.meta-caption {
+    text-align: right;
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.6;
+    max-width: 30ch;
 }
 
 .health-strip {
@@ -146,40 +218,142 @@ html, body, [data-testid="stAppViewContainer"] {
 .health-fail { border-color: rgba(255,59,92,0.45); }
 .health-stale { border-color: rgba(255,214,0,0.45); }
 
-.metric-card, .overview-card, .info-panel, .pin-board, .score-card, .matrix-card, .alert-card {
-    background: linear-gradient(180deg, rgba(12,20,37,0.95), rgba(10,17,31,0.96));
-    border: 1px solid rgba(32, 53, 84, 0.95);
-    border-radius: 18px;
-    padding: 18px;
-    box-shadow: 0 14px 34px rgba(0,0,0,0.18);
+.section-heading {
+    margin: 8px 0 12px 0;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
 }
 
-.metric-card { border-radius: 10px; }
+.section-lead {
+    margin: 0 0 14px 0;
+    padding: 13px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: rgba(12, 22, 35, 0.74);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.notice-bar {
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    background: rgba(11, 19, 31, 0.82);
+    color: var(--text);
+    font-size: 0.88rem;
+}
+
+.notice-warning { border-left-color: var(--yellow); }
+.notice-error { border-left-color: var(--red); }
+
+.metric-card, .overview-card, .info-panel, .surface {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.16);
+    height: 100%;
+}
+
+.surface-compact {
+    padding: 18px 20px;
+}
+
+.metric-card {
+    min-height: 116px;
+    border-radius: 16px;
+    padding: 18px;
+}
 
 .metric-card::before {
-    content: '';
-    display: block;
-    height: 2px;
-    margin: -18px -18px 12px -18px;
-    background: linear-gradient(90deg, var(--card-accent, var(--accent)), transparent);
-    border-top-left-radius: 18px;
-    border-top-right-radius: 18px;
+    content: none;
 }
 
 .metric-value {
-    font-family: var(--mono);
-    font-size: 1.2rem;
+    font-family: var(--sans);
+    font-size: 1.5rem;
     color: #fff;
-    font-weight: 700;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.04em;
+    margin-top: 10px;
 }
 
 .metric-delta-pos { color: var(--green); font-size: 0.8rem; font-family: var(--mono); }
 .metric-delta-neg { color: var(--red); font-size: 0.8rem; font-family: var(--mono); }
 .metric-delta-neu { color: var(--muted); font-size: 0.8rem; font-family: var(--mono); }
 
+.metric-label {
+    color: var(--muted);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.panel-kicker {
+    color: var(--accent);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-family: var(--mono);
+}
+
+.panel-title {
+    margin-top: 8px;
+    font-size: 1.28rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
+}
+
+.spotlight-price {
+    margin-top: 12px;
+    font-size: 2.8rem;
+    line-height: 0.98;
+    font-weight: 800;
+    letter-spacing: -0.06em;
+    color: #ffffff;
+}
+
+.spotlight-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.meta-tile {
+    padding: 14px 15px;
+    border-radius: 14px;
+    border: 1px solid rgba(126, 158, 197, 0.12);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.meta-tile-label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+}
+
+.meta-tile-value {
+    display: block;
+    color: var(--text);
+    font-size: 0.94rem;
+    line-height: 1.5;
+    font-weight: 700;
+}
+
 .panel-row {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(110px, 0.9fr) minmax(0, 1.2fr);
     gap: 14px;
     padding: 10px 0;
     border-bottom: 1px solid rgba(30, 45, 70, 0.92);
@@ -187,15 +361,16 @@ html, body, [data-testid="stAppViewContainer"] {
 
 .panel-row:last-child { border-bottom: none; }
 .panel-row span { color: var(--muted); }
-.panel-row strong { color: #f4fbff; text-align: right; }
+.panel-row strong { color: #f4fbff; text-align: right; line-height: 1.55; }
 
 .signal-long, .signal-short, .signal-neutral {
     font-family: var(--mono);
-    font-size: 0.72em;
-    padding: 4px 10px;
-    border-radius: 6px;
+    font-size: 0.68rem;
+    padding: 5px 10px;
+    border-radius: 999px;
     display: inline-block;
     font-weight: 700;
+    letter-spacing: 0.03em;
 }
 
 .signal-long { background: rgba(0,255,136,0.12); border: 1px solid var(--green); color: var(--green); }
@@ -204,48 +379,162 @@ html, body, [data-testid="stAppViewContainer"] {
 
 .why-list { margin-top: 14px; display: grid; gap: 6px; }
 .why-item {
-    padding: 8px 10px;
-    border-radius: 10px;
-    background: rgba(255,255,255,0.03);
-    font-size: 0.82rem;
+    padding-top: 8px;
+    border-top: 1px solid rgba(126, 158, 197, 0.12);
+    font-size: 0.84rem;
+    line-height: 1.55;
 }
 
-.pin-board, .score-card, .matrix-card, .alert-card { height: 100%; }
-
-.alert-card { border-left: 3px solid var(--accent2); }
-
 .report-box {
-    background: var(--bg2);
+    background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 24px 28px;
     line-height: 1.8;
     font-size: 0.95em;
 }
 
+[data-testid="stTabs"] {
+    margin-top: 14px;
+}
+
 [data-testid="stTabs"] { margin-top: 12px; }
 [data-testid="stTab"] {
-    background: rgba(10, 18, 31, 0.88) !important;
-    border: 1px solid transparent !important;
-    border-radius: 999px !important;
-    padding: 8px 14px !important;
-    margin-right: 6px !important;
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 2px solid transparent !important;
+    border-radius: 0 !important;
+    padding: 12px 2px !important;
+    margin-right: 22px !important;
+    color: var(--muted) !important;
+    font-weight: 600 !important;
 }
 [data-testid="stTab"][aria-selected="true"] {
-    background: rgba(12, 28, 51, 0.98) !important;
-    border-color: rgba(35, 72, 116, 0.95) !important;
+    background: transparent !important;
+    border-color: var(--accent) !important;
+    color: var(--text) !important;
 }
 
 .news-card {
-    background: var(--bg2);
+    background: var(--panel);
     border: 1px solid var(--border);
     border-left: 3px solid var(--accent);
-    border-radius: 8px;
-    padding: 12px 16px;
-    margin-bottom: 8px;
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
 }
 .news-card a { color: #e0eef8; text-decoration: none; font-weight: 600; }
 .news-meta { color: var(--muted); font-size: 0.72em; margin-top: 5px; font-family: var(--mono); }
+
+.score-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.score-pill {
+    padding: 14px 15px;
+    border-radius: 16px;
+    border: 1px solid rgba(126, 158, 197, 0.12);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.score-label {
+    display: block;
+    color: var(--muted);
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.score-value {
+    display: block;
+    margin-top: 8px;
+    color: var(--text);
+    font-size: 1.8rem;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+}
+
+.matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 14px;
+}
+
+.matrix-table th,
+.matrix-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid rgba(126, 158, 197, 0.12);
+    text-align: left;
+    vertical-align: top;
+}
+
+.matrix-table th {
+    color: var(--muted);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-family: var(--mono);
+}
+
+.matrix-table td {
+    color: var(--text);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.alert-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.alert-item {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(126, 158, 197, 0.1);
+}
+
+.alert-item strong {
+    display: block;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.alert-item span {
+    color: var(--muted);
+    line-height: 1.55;
+    font-size: 0.88rem;
+}
+
+.sidebar-note {
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--muted);
+    font-size: 0.84rem;
+    line-height: 1.6;
+}
+
+[data-testid="stButton"] > button,
+[data-testid="stDownloadButton"] > button {
+    border-radius: 14px !important;
+    border: 1px solid var(--border-strong) !important;
+    background: rgba(14, 28, 46, 0.92) !important;
+    color: var(--text) !important;
+    font-weight: 700 !important;
+}
+
+[data-testid="stDataFrame"] {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
 
 @media (max-width: 900px) {
     .terminal-header {
@@ -253,7 +542,14 @@ html, body, [data-testid="stAppViewContainer"] {
         align-items: flex-start;
         flex-direction: column;
     }
-    .header-meta { justify-content: flex-start; }
+    .header-meta { justify-items: start; min-width: 0; }
+    .meta-stack { justify-content: flex-start; }
+    .meta-caption { text-align: left; }
+    .header-summary { display: grid; }
+    .spotlight-meta { grid-template-columns: 1fr; }
+    .score-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .panel-row { grid-template-columns: 1fr; }
+    .panel-row strong { text-align: left; }
 }
 </style>
 """,
@@ -268,7 +564,7 @@ def init_preferences():
 
 def render_preferences_panel():
     preferences = st.session_state["preferences"]
-    with st.sidebar.expander("Kisisel Ayarlar", expanded=True):
+    with st.sidebar.expander("Gorunum ve Uyarilar", expanded=False):
         view_mode = st.radio(
             "Gorunum modu", ["Basit", "Pro"], index=0 if preferences.get("view_mode") == "Basit" else 1
         )
@@ -311,56 +607,99 @@ def render_preferences_panel():
 
 def render_pinned_dashboard(data: dict, pinned_metrics: list[str]):
     pinned_items = build_pinned_metrics(data, pinned_metrics)
-    st.markdown("<div class='pin-board'>", unsafe_allow_html=True)
-    cat("Pinli Dashboard")
+    cat("Market Pulse")
     render_cards(pinned_items, cols=4)
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_score_panel(analytics: dict):
     scores = analytics["scores"]
-    st.markdown("<div class='score-card'>", unsafe_allow_html=True)
-    cat("Rejim Skorlama")
-    col1, col2, col3, col4, col5 = st.columns(5)
-    col1.metric("Genel", f"{scores['overall']}/100")
-    for col, (label, value) in zip([col2, col3, col4, col5], scores["subscores"].items()):
-        col.metric(label, f"{value}/100")
-    st.markdown("</div>", unsafe_allow_html=True)
+    score_items = [("Genel", scores["overall"]), *scores["subscores"].items()]
+    score_html = "".join(
+        f"""
+        <div class="score-pill">
+            <span class="score-label">{clean_text(label)}</span>
+            <span class="score-value">{clean_text(value)}/100</span>
+        </div>
+        """
+        for label, value in score_items
+    )
+    st.markdown(
+        f"""
+        <div class="surface">
+            <div class="panel-kicker">Risk Skoru</div>
+            <div class="panel-title">Rejim Haritasi</div>
+            <div class="panel-copy">Likidite, volatilite, pozisyonlanma ve breadth ayni tabloda okunur.</div>
+            <div class="score-grid">{score_html}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_scenario_matrix(analytics: dict):
-    st.markdown("<div class='matrix-card'>", unsafe_allow_html=True)
-    cat("Senaryo Matrisi")
-    st.dataframe(pd.DataFrame(analytics["scenarios"]), use_container_width=True, hide_index=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+    rows_html = "".join(
+        f"""
+        <tr>
+            <td>{clean_text(row['Scenario'])}</td>
+            <td>{clean_text(row['Trigger'])}</td>
+            <td>{clean_text(row['Follow-through'])}</td>
+        </tr>
+        """
+        for row in analytics["scenarios"]
+    )
+    st.markdown(
+        f"""
+        <div class="surface">
+            <div class="panel-kicker">Execution Map</div>
+            <div class="panel-title">Senaryo Matrisi</div>
+            <div class="panel-copy">Bir sonraki hareketin hangi kosullarda teyit edilecegini tek tabloda gosterir.</div>
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th>Senaryo</th>
+                        <th>Trigger</th>
+                        <th>Takip sinyali</th>
+                    </tr>
+                </thead>
+                <tbody>{rows_html}</tbody>
+            </table>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_alert_panel(alerts: list[dict]):
-    st.markdown("<div class='alert-card'>", unsafe_allow_html=True)
-    cat("Alarm Kurallari")
     if alerts:
-        for alert in alerts:
-            st.markdown(f"**{clean_text(alert['title'])}**")
-            st.caption(clean_text(alert["detail"]))
+        alert_html = "".join(
+            f"""
+            <div class="alert-item">
+                <strong>{clean_text(alert['title'])}</strong>
+                <span>{clean_text(alert['detail'])}</span>
+            </div>
+            """
+            for alert in alerts
+        )
+        title = "Aktif alarmlar esiklerin ustune cikti."
     else:
-        st.caption("Aktif alarm yok. Funding, VIX ve ETF esikleri sessiz.")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-def render_reasoning_panel(brief: dict):
-    cat("Neden Boyle Dusunuyorum?")
-    cols = st.columns(2)
-    items = list(brief.items())
-    for column, (key, card) in zip(cols * 2, items):
-        with column:
-            render_info_panel(
-                key.replace("_", " ").title(),
-                card["title"],
-                [(f"Neden {idx + 1}", reason) for idx, reason in enumerate(card.get("why", []))],
-                badge_text=card["badge"],
-                badge_kind=card["class"],
-                copy=card["detail"],
-            )
+        alert_html = """
+        <div class="alert-item">
+            <strong>Aktif alarm yok</strong>
+            <span>Funding, VIX ve ETF esikleri su an sessiz. Esik asiminda uyarilar burada toplanir.</span>
+        </div>
+        """
+        title = "Esik bazli risk akisi sakin."
+    st.markdown(
+        f"""
+        <div class="surface">
+            <div class="panel-kicker">Alert Feed</div>
+            <div class="panel-title">{title}</div>
+            <div class="panel-copy">Panelin operasyonel uyarilari bu kutuda tutulur; gereksiz tekrarlar ana yuzeyden kaldirildi.</div>
+            <div class="alert-list">{alert_html}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_downloads(data: dict, brief: dict, analytics: dict, alerts: list[dict], health_summary: dict):
@@ -424,29 +763,47 @@ def render_news_tab(data: dict):
             <div class="tradingview-widget-container__widget"></div>
             <script src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js" async>
             {"feedMode":"all_symbols","isTransparent":true,"displayMode":"regular",
-            "width":"100%","height":"800","colorTheme":"dark","locale":"tr"}</script></div>
+            "width":"100%","height":"620","colorTheme":"dark","locale":"tr"}</script></div>
             """,
-            height=820,
+            height=640,
         )
 
 
 def render_all_metrics_tab(data: dict):
     st.subheader("Tum Metrikler")
-    rows = [(key, clean_text(value)) for key, value in data.items() if key != "_health"]
+    rows = [(key, clean_text(value)) for key, value in data.items() if key not in {"_health", "NEWS"}]
     st.dataframe(pd.DataFrame(rows, columns=["Metrik", "Deger"]), use_container_width=True, hide_index=True)
 
 
 def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[dict]):
-    hero_col, context_col = st.columns([1.75, 1.05])
+    hero_col, context_col = st.columns([1.45, 0.95])
     with hero_col:
         st.markdown(
             f"""
-            <div class="info-panel">
-                <div class="panel-kicker">Bitcoin / USD</div>
-                <div class="panel-title">{clean_text(data.get('BTC_P', '-'))}</div>
+            <div class="surface">
+                <div class="panel-kicker">Primary Market</div>
+                <div class="panel-title">Bitcoin / USD</div>
+                <div class="spotlight-price">{clean_text(data.get('BTC_P', '-'))}</div>
                 <div class="panel-copy">
-                    24s {clean_text(data.get('BTC_C', '-'))} | 7g {clean_text(data.get('BTC_7D', '-'))} |
-                    Hacim {clean_text(data.get('Vol_24h', '-'))} | MCap {clean_text(data.get('BTC_MCap', '-'))}
+                    Ana fiyat kutusu sadece calisma yuzeyi icin gerekli bilgiyi bir arada tutar.
+                </div>
+                <div class="spotlight-meta">
+                    <div class="meta-tile">
+                        <span class="meta-tile-label">24 Saat</span>
+                        <span class="meta-tile-value">{clean_text(data.get('BTC_C', '-'))}</span>
+                    </div>
+                    <div class="meta-tile">
+                        <span class="meta-tile-label">7 Gun</span>
+                        <span class="meta-tile-value">{clean_text(data.get('BTC_7D', '-'))}</span>
+                    </div>
+                    <div class="meta-tile">
+                        <span class="meta-tile-label">Hacim</span>
+                        <span class="meta-tile-value">{clean_text(data.get('Vol_24h', '-'))}</span>
+                    </div>
+                    <div class="meta-tile">
+                        <span class="meta-tile-label">Piyasa Degeri</span>
+                        <span class="meta-tile-value">{clean_text(data.get('BTC_MCap', '-'))}</span>
+                    </div>
                 </div>
             </div>
             """,
@@ -464,25 +821,20 @@ def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[d
             ],
             badge_text=brief["focus"]["badge"],
             badge_kind=brief["focus"]["class"],
-            copy="Rozetlerin arkasindaki nedenler hemen asagida detayli aciklanir.",
+            copy="Sag kolonu not ve takip listesi icin ayirdim; ana yuzeyde tekrar eden ozet kartlarini kaldirdim.",
         )
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
     render_market_brief(brief)
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
-    col_scores, col_matrix = st.columns([1.1, 1.2])
-    with col_scores:
-        render_score_panel(analytics)
+    col_matrix, col_side = st.columns([1.3, 0.9])
     with col_matrix:
         render_scenario_matrix(analytics)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    col_alerts, col_reasons = st.columns([0.9, 1.3])
-    with col_alerts:
+    with col_side:
+        render_score_panel(analytics)
+        st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
         render_alert_panel(alerts)
-    with col_reasons:
-        render_reasoning_panel(brief)
 
 
 def render_macro_tab(data: dict):
@@ -526,18 +878,19 @@ def render_report_tab(
         components.html(
             """
             <div style="height:520px;">
+            <div id="tv_main" style="height:100%;"></div>
             <script src="https://s3.tradingview.com/tv.js"></script>
             <script>new TradingView.widget({autosize:true,symbol:"BINANCE:BTCUSDT",
             interval:"D",theme:"dark",style:"1",locale:"tr",toolbar_bg:"#070d1a",
             container_id:"tv_main"});</script>
-            <div id="tv_main" style="height:100%;"></div></div>
+            </div>
             """,
             height=540,
         )
         st.divider()
         render_downloads(data, brief, analytics, alerts, health_summary)
     with col_side:
-        st.subheader("Ekonomik Takvim")
+        st.subheader("Makro Takvim")
         components.html(
             """
             <div class="tradingview-widget-container">
@@ -570,13 +923,13 @@ brief = build_market_brief(data)
 analytics = build_analytics_payload(data)
 alerts = build_alerts(data, preferences.get("thresholds", {}))
 
-render_page_header(last_updated, health_summary)
+render_page_header(last_updated, health_summary, brief, preferences)
 render_health_alerts(health_summary)
 render_sidebar(data, brief, last_updated, health_summary, preferences, alerts)
 render_pinned_dashboard(data, preferences.get("pinned_metrics", DEFAULT_PINNED_METRICS))
 
 if preferences.get("view_mode") == "Basit":
-    tabs = st.tabs(["Genel Bakis", "Makro", "Rapor"])
+    tabs = st.tabs(["Terminal", "Makro", "Strateji"])
     with tabs[0]:
         render_overview_tab(data, brief, analytics, alerts)
     with tabs[1]:
@@ -586,7 +939,7 @@ if preferences.get("view_mode") == "Basit":
             client, data, brief, analytics, alerts, health_summary, preferences.get("report_depth", "Orta")
         )
 else:
-    tabs = st.tabs(["Genel Bakis", "Makro", "Rapor", "Haberler", "Tum Metrikler"])
+    tabs = st.tabs(["Terminal", "Makro", "Strateji", "Haber Akisi", "Veri Tablosu"])
     with tabs[0]:
         render_overview_tab(data, brief, analytics, alerts)
     with tabs[1]:
