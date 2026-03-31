@@ -20,6 +20,9 @@ def build_market_brief(data):
     ls_signal = data.get("LS_Signal", PLACEHOLDER)
     orderbook_signal = data.get("ORDERBOOK_SIGNAL", PLACEHOLDER)
     orderbook_detail = data.get("ORDERBOOK_SIGNAL_DETAIL", PLACEHOLDER)
+    has_positioning_data = any(
+        parse_number(data.get(key)) is not None for key in ("FR", "LS_Ratio", "Taker")
+    ) or any(data.get(key, PLACEHOLDER) != PLACEHOLDER for key in ("LS_Signal", "Long_Pct", "Short_Pct"))
 
     if btc_change is not None and btc_change >= 2:
         regime = {
@@ -61,7 +64,20 @@ def build_market_brief(data):
             ),
         }
 
-    if funding is not None and funding > 0 and "Long" in ls_signal:
+    if not has_positioning_data:
+        positioning = {
+            "label": "Pozisyonlanma",
+            "title": "Turev akis bekleniyor",
+            "detail": "Funding, L/S ve taker verisi henuz teyit edilmedi.",
+            "badge": "DATA",
+            "class": "signal-neutral",
+            "why": [
+                "Funding verisi bekleniyor",
+                "Long/Short verisi bekleniyor",
+                "Taker akisi bekleniyor",
+            ],
+        }
+    elif funding is not None and funding > 0 and "Long" in ls_signal:
         positioning = {
             "label": "Pozisyonlanma",
             "title": "Longlar Kalabalik",
@@ -153,7 +169,20 @@ def build_market_brief(data):
             ),
         }
 
-    if "destek" in orderbook_signal.lower():
+    if orderbook_signal == PLACEHOLDER and orderbook_detail == PLACEHOLDER:
+        focus = {
+            "label": "Odak Seviye",
+            "title": "Order book teyidi bekleniyor",
+            "detail": "Borsa seviyeleri dogrulaninca ortak destek/direnc burada guncellenecek.",
+            "badge": "WATCH",
+            "class": "signal-neutral",
+            "why": [
+                "Kraken seviyesi bekleniyor",
+                "OKX seviyesi bekleniyor",
+                "Coklu borsa teyidi bekleniyor",
+            ],
+        }
+    elif "destek" in orderbook_signal.lower():
         focus = {
             "label": "Odak Seviye",
             "title": "Ortak Destek",
