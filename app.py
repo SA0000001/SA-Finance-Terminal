@@ -38,7 +38,7 @@ st.set_page_config(
     page_title="SA Finance Alpha Terminal",
     page_icon="SA",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 st.markdown(
@@ -806,6 +806,109 @@ html, body, [data-testid="stAppViewContainer"] {
     line-height: 1.6;
 }
 
+[data-testid="stExpander"] {
+    border: 1px solid rgba(126, 158, 197, 0.12) !important;
+    border-radius: 18px !important;
+    background: linear-gradient(180deg, rgba(12, 21, 34, 0.82), rgba(9, 17, 28, 0.9)) !important;
+    overflow: hidden;
+}
+
+[data-testid="stExpander"] details summary {
+    padding: 0.2rem 0.35rem !important;
+}
+
+[data-testid="stExpanderDetails"] {
+    padding-top: 0.3rem !important;
+}
+
+.health-alert-surface {
+    margin: 0 0 18px 0;
+}
+
+.health-issue-list,
+.source-health-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.health-issue-row,
+.source-health-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.028);
+    border: 1px solid rgba(126, 158, 197, 0.1);
+}
+
+.health-issue-source,
+.source-health-source {
+    color: var(--text);
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.health-issue-error,
+.source-health-detail {
+    color: var(--muted);
+    font-size: 0.84rem;
+    line-height: 1.6;
+    margin-top: 4px;
+}
+
+.health-issue-meta,
+.source-health-meta {
+    min-width: 180px;
+    text-align: right;
+    display: grid;
+    justify-items: end;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 0.78rem;
+}
+
+.health-issue-status,
+.source-health-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border: 1px solid rgba(126, 158, 197, 0.16);
+    color: var(--text);
+}
+
+.health-issue-fail,
+.source-status-fail {
+    border-color: rgba(255, 115, 132, 0.38);
+    color: var(--red);
+}
+
+.health-issue-stale,
+.source-status-stale {
+    border-color: rgba(241, 197, 108, 0.38);
+    color: var(--yellow);
+}
+
+.health-issue-ok,
+.source-status-ok {
+    border-color: rgba(56, 217, 150, 0.34);
+    color: var(--green);
+}
+
+.control-rail-meta {
+    color: var(--muted);
+    font-size: 0.88rem;
+    line-height: 1.65;
+    padding-top: 8px;
+}
+
 [data-testid="stButton"] > button,
 [data-testid="stDownloadButton"] > button {
     border-radius: var(--radius-sm) !important;
@@ -1173,6 +1276,15 @@ DATA_ATLAS_SECTIONS = [
     {"title": "Forex", "rows": [("EUR/USD", "EURUSD"), ("GBP/USD", "GBPUSD"), ("USD/JPY", "USDJPY"), ("USD/TRY", "USDTRY"), ("USD/CHF", "USDCHF"), ("AUD/USD", "AUDUSD")]},
 ]
 
+DERIVATIVE_SOURCE_NAMES = [
+    "Derivatives Pipeline",
+    "OKX Funding",
+    "OKX Open Interest",
+    "OKX Taker Volume",
+    "OKX Long/Short",
+    "Gate.io Long/Short",
+]
+
 
 def data_rows(data: dict, items):
     return [(label, data.get(key, "-")) for label, key in items]
@@ -1195,36 +1307,55 @@ def init_preferences():
         st.session_state["preferences"] = load_preferences()
 
 
-def render_preferences_panel():
+def init_ui_state():
+    if "control_rail_open" not in st.session_state:
+        st.session_state["control_rail_open"] = True
+
+
+def render_preferences_panel(host, key_prefix: str = "prefs", *, expanded: bool = False):
     preferences = st.session_state["preferences"]
-    with st.sidebar.expander("Gorunum ve Uyarilar", expanded=False):
-        view_mode = st.radio(
-            "Gorunum modu", ["Basit", "Pro"], index=0 if preferences.get("view_mode") == "Basit" else 1
+    with host.expander("Gorunum ve Uyarilar", expanded=expanded):
+        view_mode = host.radio(
+            "Gorunum modu",
+            ["Basit", "Pro"],
+            index=0 if preferences.get("view_mode") == "Basit" else 1,
+            key=f"{key_prefix}_view_mode",
         )
-        report_depth = st.selectbox(
+        report_depth = host.selectbox(
             "Rapor seviyesi",
             ["Kisa", "Orta", "Derin"],
             index=["Kisa", "Orta", "Derin"].index(preferences.get("report_depth", "Orta")),
+            key=f"{key_prefix}_report_depth",
         )
-        pinned_metrics = st.multiselect(
+        pinned_metrics = host.multiselect(
             "Pinli metrikler",
             options=list(METRIC_LABELS),
             default=preferences.get("pinned_metrics", DEFAULT_PINNED_METRICS),
             format_func=lambda key: METRIC_LABELS.get(key, key),
+            key=f"{key_prefix}_pinned_metrics",
         )
-        funding_above = st.number_input(
-            "Funding > X", value=float(preferences["thresholds"].get("funding_above", 0.01)), step=0.005, format="%.4f"
+        funding_above = host.number_input(
+            "Funding > X",
+            value=float(preferences["thresholds"].get("funding_above", 0.01)),
+            step=0.005,
+            format="%.4f",
+            key=f"{key_prefix}_funding_above",
         )
-        vix_above = st.number_input(
-            "VIX > Y", value=float(preferences["thresholds"].get("vix_above", 25.0)), step=0.5, format="%.2f"
+        vix_above = host.number_input(
+            "VIX > Y",
+            value=float(preferences["thresholds"].get("vix_above", 25.0)),
+            step=0.5,
+            format="%.2f",
+            key=f"{key_prefix}_vix_above",
         )
-        etf_flow_below = st.number_input(
+        etf_flow_below = host.number_input(
             "ETF netflow < Z",
             value=float(preferences["thresholds"].get("etf_flow_below", 0.0)),
             step=10.0,
             format="%.1f",
+            key=f"{key_prefix}_etf_flow_below",
         )
-        if st.button("Ayarlari Kaydet", use_container_width=True):
+        if host.button("Ayarlari Kaydet", key=f"{key_prefix}_save", use_container_width=True):
             preferences["view_mode"] = view_mode
             preferences["report_depth"] = report_depth
             preferences["pinned_metrics"] = pinned_metrics[:8]
@@ -1235,7 +1366,157 @@ def render_preferences_panel():
             }
             save_preferences(preferences)
             st.session_state["preferences"] = preferences
-            st.success("Ayarlar kaydedildi.")
+            host.success("Ayarlar kaydedildi.")
+
+
+def get_source_health_rows(health_summary: dict, sources: list[str] | None = None, *, include_ok: bool = False) -> list[dict]:
+    rows = list(health_summary.get("rows", []))
+    if sources:
+        source_set = set(sources)
+        rows = [row for row in rows if row.get("Kaynak") in source_set]
+    if not include_ok:
+        rows = [row for row in rows if row.get("Durum") != "OK"]
+    return rows
+
+
+def render_source_health_surface(title: str, caption: str, rows: list[dict], *, empty_copy: str):
+    if not rows:
+        st.markdown(
+            f"""
+            <div class="surface">
+                <div class="panel-kicker">Source Health</div>
+                <div class="panel-title">{clean_text(title)}</div>
+                <div class="panel-copy">{clean_text(empty_copy)}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    row_html = "".join(
+        f"""
+        <div class="source-health-row">
+            <div>
+                <div class="source-health-source">{clean_text(row['Kaynak'])}</div>
+                <div class="source-health-detail">{clean_text(row['Hata'] if row['Hata'] != '-' else 'Son basarili: ' + row['Son basarili'])}</div>
+            </div>
+            <div class="source-health-meta">
+                <span class="source-health-status source-status-{row['Durum'].lower()}">{clean_text(row['Durum'])}</span>
+                <span>{clean_text(row['Gecikme'])}</span>
+            </div>
+        </div>
+        """
+        for row in rows
+    )
+    st.markdown(
+        f"""
+        <div class="surface">
+            <div class="panel-kicker">Source Health</div>
+            <div class="panel-title">{clean_text(title)}</div>
+            <div class="panel-copy">{clean_text(caption)}</div>
+            <div class="source-health-list">{row_html}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_control_rail(data: dict, brief: dict, last_updated: str, health_summary: dict, alerts: list[dict]):
+    toolbar_left, toolbar_mid, toolbar_right = st.columns([1.1, 1.0, 2.4])
+    rail_open = st.session_state.get("control_rail_open", True)
+
+    with toolbar_left:
+        if st.button(
+            "Komuta panelini gizle" if rail_open else "Komuta panelini goster",
+            key="toggle_control_rail",
+            use_container_width=True,
+        ):
+            st.session_state["control_rail_open"] = not rail_open
+            st.rerun()
+
+    with toolbar_mid:
+        if st.button("Verileri yenile", key="refresh_main_control", use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
+
+    with toolbar_right:
+        st.markdown(
+            f"""
+            <div class="control-rail-meta">
+                Control rail artik sadece sol sidebar'a bagli degil. Ayarlar, alarm esikleri ve kaynak sagligi
+                ana yuzeyde de kalici olarak acilabiliyor. Son guncelleme: {last_updated}. Odak seviye:
+                {clean_text(brief['focus']['detail'])}.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    if not st.session_state.get("control_rail_open", True):
+        st.markdown(
+            "<div class='section-lead'>Komuta paneli gizli. Yukaridaki buton ile ayarlar, alarm esikleri ve veri sagligi alanini tekrar acabilirsin.</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    col_ops, col_alerts, col_health = st.columns([1.1, 1.0, 1.2])
+
+    with col_ops:
+        st.markdown("#### Komuta Paneli")
+        export_df = pd.DataFrame(
+            [(key, value) for key, value in data.items() if key not in {"NEWS", "_health"}],
+            columns=["Metrik", "Deger"],
+        )
+        st.download_button(
+            "CSV indir",
+            export_df.to_csv(index=False, sep=";").encode("utf-8-sig"),
+            file_name=f"AlphaTerminal_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.csv",
+            mime="text/csv",
+            key="download_main_control",
+            use_container_width=True,
+        )
+        render_preferences_panel(st, key_prefix="main_control", expanded=True)
+
+    with col_alerts:
+        st.markdown("#### Alarm ve Notlar")
+        if alerts:
+            for alert in alerts:
+                st.markdown(
+                    f"""
+                    <div class="alert-item">
+                        <strong>{clean_text(alert['title'])}</strong>
+                        <span>{clean_text(alert['detail'])}</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.markdown(
+                """
+                <div class="alert-item">
+                    <strong>Aktif alarm yok</strong>
+                    <span>Funding, VIX ve ETF esikleri su an sessiz. Yeni esik asimlari burada toplanir.</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        st.markdown(
+            f"""
+            <div class="alert-item" style="margin-top:12px">
+                <strong>Canli Notlar</strong>
+                <span>Piyasa rejimi: {clean_text(brief['regime']['title'])}<br/>Likidite: {clean_text(brief['liquidity']['title'])}<br/>Pozisyonlanma: {clean_text(brief['positioning']['title'])}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with col_health:
+        issue_rows = get_source_health_rows(health_summary, include_ok=False)
+        render_source_health_surface(
+            "Kaynak Sagligi",
+            "Fail ve stale kaynaklar burada acik hata metniyle listelenir. Boylece hangi veri yuzeyinin neden bos kaldigi dogrudan gorunur.",
+            issue_rows[:6],
+            empty_copy="Tum veri kaynaklari su an saglikli. Bu panel sadece problem oldugunda detay gosterecek.",
+        )
 
 
 def render_pinned_dashboard(data: dict, pinned_metrics: list[str]):
@@ -1595,13 +1876,20 @@ def render_macro_tab(data: dict):
     render_table_row(data, MACRO_MARKET_SECTIONS[5:], 3)
 
 
-def render_flow_risk_tab(data: dict):
+def render_flow_risk_tab(data: dict, health_summary: dict):
     st.markdown("<div class='table-section-title'>Flow and Risk Surfaces</div>", unsafe_allow_html=True)
     st.markdown(
         "<div class='table-section-copy'>Turev, order book, ETF, stablecoin ve breadth katmanlarini ayri ayri ama tek tasarim sistemi icinde topladim.</div>",
         unsafe_allow_html=True,
     )
     render_table_row(data, FLOW_RISK_SECTIONS[:2], 2)
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    render_source_health_surface(
+        "Turev Kaynak Durumu",
+        "Funding, open interest, taker ve long/short verileri bos kalirsa nedeni artik ayni sekmede hangi endpoint'in fail oldugu ile birlikte gorunur.",
+        get_source_health_rows(health_summary, DERIVATIVE_SOURCE_NAMES, include_ok=True),
+        empty_copy="Turev kaynaklarina ait health kaydi henuz olusmadi.",
+    )
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
     render_table_row(data, FLOW_RISK_SECTIONS[2:], 2)
 
@@ -1645,10 +1933,9 @@ def render_report_tab(
 
 
 init_preferences()
+init_ui_state()
 preferences = st.session_state["preferences"]
 client = build_openrouter_client(OPENROUTER_API_KEY) if OPENROUTER_API_KEY else None
-render_preferences_panel()
-preferences = st.session_state["preferences"]
 
 last_updated = pd.Timestamp.now(tz="Europe/Istanbul").strftime("%d.%m.%Y %H:%M:%S")
 with st.spinner("Piyasa verileri yukleniyor..."):
@@ -1665,6 +1952,7 @@ alerts = build_alerts(data, preferences.get("thresholds", {}))
 render_page_header(last_updated, health_summary, brief, preferences)
 render_health_alerts(health_summary)
 render_sidebar(data, brief, last_updated, health_summary, preferences, alerts)
+render_control_rail(data, brief, last_updated, health_summary, alerts)
 render_pinned_dashboard(data, preferences.get("pinned_metrics", DEFAULT_PINNED_METRICS))
 
 if preferences.get("view_mode") == "Basit":
@@ -1676,7 +1964,7 @@ if preferences.get("view_mode") == "Basit":
     with tabs[1]:
         render_macro_tab(data)
     with tabs[2]:
-        render_flow_risk_tab(data)
+        render_flow_risk_tab(data, health_summary)
     with tabs[3]:
         render_report_tab(
             client, data, brief, analytics, alerts, health_summary, preferences.get("report_depth", "Orta")
@@ -1692,7 +1980,7 @@ else:
     with tabs[1]:
         render_macro_tab(data)
     with tabs[2]:
-        render_flow_risk_tab(data)
+        render_flow_risk_tab(data, health_summary)
     with tabs[3]:
         render_report_tab(
             client, data, brief, analytics, alerts, health_summary, preferences.get("report_depth", "Orta")
