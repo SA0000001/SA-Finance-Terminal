@@ -53,3 +53,26 @@ def test_build_market_brief_returns_defensive_bias_when_liquidity_is_risk_off():
     assert brief["positioning"]["class"] == "signal-short"
     assert brief["liquidity"]["class"] == "signal-short"
     assert brief["focus"]["class"] == "signal-short"
+
+
+def test_build_market_brief_surfaces_waiting_state_when_derivatives_missing():
+    brief = build_market_brief(
+        {
+            "BTC_C": "0.50%",
+            "USDT_D": "%7.20",
+            "STABLE_C_D": "%13.00",
+            "VIX": "22.0",
+            "ETF_FLOW_TOTAL": "-",
+            "LS_Signal": "-",
+            "LS_Ratio": "-",
+            "Taker": "-",
+            "FR": "-",
+            "ORDERBOOK_SIGNAL": "-",
+            "ORDERBOOK_SIGNAL_DETAIL": "-",
+            "Wall_Status": "-",
+        }
+    )
+
+    assert brief["positioning"]["title"] == "Turev akis bekleniyor"
+    assert brief["positioning"]["badge"] == "DATA"
+    assert brief["focus"]["title"] == "Order book teyidi bekleniyor"
