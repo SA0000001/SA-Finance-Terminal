@@ -1,8 +1,11 @@
+PLACEHOLDER = "-"
+
+
 def badge_class(text: str):
     text = (text or "").lower()
-    if any(word in text for word in ["long", "güçlü", "risk", "destek", "akıyor", "pozitif"]):
+    if any(word in text for word in ["long", "guclu", "risk", "destek", "akiyor", "pozitif"]):
         return "signal-long"
-    if any(word in text for word in ["short", "baskı", "direnç", "savunmacı", "negatif"]):
+    if any(word in text for word in ["short", "baski", "direnc", "savunmaci", "negatif"]):
         return "signal-short"
     return "signal-neutral"
 
@@ -38,17 +41,18 @@ def extract_wall_levels(bids, asks, noise=250, bucket_size=100):
         filtered_bids, lambda price: int(price / bucket_size) * bucket_size
     )
     resistance_price, resistance_volume = strongest_bucket(
-        filtered_asks, lambda price: int((price / bucket_size) + 1) * bucket_size
+        filtered_asks,
+        lambda price: int((price / bucket_size) + 1) * bucket_size,
     )
 
     distance_support = current_price - support_price
     distance_resistance = resistance_price - current_price
     if distance_resistance < distance_support:
-        status = "🔴 Dirence Yakın"
+        status = "Dirence yakin"
     elif distance_support < distance_resistance:
-        status = "🟢 Desteğe Yakın"
+        status = "Destege yakin"
     else:
-        status = "⚖️ Kanal Ortası"
+        status = "Kanal ortasi"
 
     return {
         "current_price": current_price,
@@ -66,7 +70,7 @@ def wall_field(prefix, field):
 
 def format_btc_volume(volume):
     if volume is None:
-        return "—"
+        return PLACEHOLDER
     if volume >= 10:
         return f"{volume:,.0f} BTC"
     if volume >= 1:
@@ -84,12 +88,12 @@ def save_wall_levels(target, prefix, levels):
 
 
 def clear_wall_levels(target, prefix):
-    target[wall_field(prefix, "Sup_Wall")] = "—"
-    target[wall_field(prefix, "Sup_Vol")] = "—"
-    target[wall_field(prefix, "Res_Wall")] = "—"
-    target[wall_field(prefix, "Res_Vol")] = "—"
-    target[wall_field(prefix, "Wall_Status")] = "—"
-    target[wall_field(prefix, "BTC_Now")] = "—"
+    target[wall_field(prefix, "Sup_Wall")] = PLACEHOLDER
+    target[wall_field(prefix, "Sup_Vol")] = PLACEHOLDER
+    target[wall_field(prefix, "Res_Wall")] = PLACEHOLDER
+    target[wall_field(prefix, "Res_Vol")] = PLACEHOLDER
+    target[wall_field(prefix, "Wall_Status")] = PLACEHOLDER
+    target[wall_field(prefix, "BTC_Now")] = PLACEHOLDER
 
 
 def build_orderbook_signal(data):
@@ -105,9 +109,9 @@ def build_orderbook_signal(data):
         snapshots.append(
             {
                 "name": name,
-                "status": data.get(wall_field(prefix, "Wall_Status"), "—"),
-                "support": data.get(wall_field(prefix, "Sup_Wall"), "—"),
-                "resistance": data.get(wall_field(prefix, "Res_Wall"), "—"),
+                "status": data.get(wall_field(prefix, "Wall_Status"), PLACEHOLDER),
+                "support": data.get(wall_field(prefix, "Sup_Wall"), PLACEHOLDER),
+                "resistance": data.get(wall_field(prefix, "Res_Wall"), PLACEHOLDER),
             }
         )
 
@@ -115,10 +119,10 @@ def build_orderbook_signal(data):
     resistance_names = [item["name"] for item in snapshots if "Diren" in item["status"]]
 
     if len(support_names) >= 2 and len(support_names) > len(resistance_names):
-        detail = " · ".join(
+        detail = " | ".join(
             f"{item['name']} {item['support']}"
             for item in snapshots
-            if item["name"] in support_names and item["support"] != "—"
+            if item["name"] in support_names and item["support"] != PLACEHOLDER
         )
         return {
             "title": "Ortak destek guclu",
@@ -128,10 +132,10 @@ def build_orderbook_signal(data):
         }
 
     if len(resistance_names) >= 2 and len(resistance_names) > len(support_names):
-        detail = " · ".join(
+        detail = " | ".join(
             f"{item['name']} {item['resistance']}"
             for item in snapshots
-            if item["name"] in resistance_names and item["resistance"] != "—"
+            if item["name"] in resistance_names and item["resistance"] != PLACEHOLDER
         )
         return {
             "title": "Ortak direnc guclu",
@@ -140,10 +144,10 @@ def build_orderbook_signal(data):
             "class": "signal-short",
         }
 
-    detail = " · ".join(
+    detail = " | ".join(
         f"{item['name']} {item['support']} / {item['resistance']}"
         for item in snapshots
-        if item["support"] != "—" or item["resistance"] != "—"
+        if item["support"] != PLACEHOLDER or item["resistance"] != PLACEHOLDER
     )
     return {
         "title": "Seviyeler karisik",
