@@ -53,7 +53,39 @@ def render_page_header(last_updated: str, health_summary: dict, brief: dict, pre
 
 
 def render_health_alerts(health_summary: dict):
-    return
+    issue_rows = [row for row in health_summary.get("rows", []) if row.get("Durum") != "OK"]
+    if not issue_rows:
+        return
+
+    issue_html = "".join(
+        f"""
+        <div class="health-issue-row">
+            <div>
+                <div class="health-issue-source">{clean_text(row['Kaynak'])}</div>
+                <div class="health-issue-error">{clean_text(row['Hata'])}</div>
+            </div>
+            <div class="health-issue-meta">
+                <span class="health-issue-status health-issue-{row['Durum'].lower()}">{clean_text(row['Durum'])}</span>
+                <span>{clean_text(row['Son basarili'])}</span>
+            </div>
+        </div>
+        """
+        for row in issue_rows[:6]
+    )
+    st.markdown(
+        f"""
+        <div class="surface health-alert-surface">
+            <div class="panel-kicker">Source Health</div>
+            <div class="panel-title">Veri akisinda dikkat isteyen kaynaklar var</div>
+            <div class="panel-copy">
+                "Veri bekleniyor" gorunen alanlarin nedeni artik burada acik sekilde listelenir.
+                Fail ve stale kaynaklari soldaki panel acik olmasa bile bu yuzeyden gorebilirsin.
+            </div>
+            <div class="health-issue-list">{issue_html}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_health_panel(health_summary: dict):
@@ -75,7 +107,7 @@ def render_sidebar(data, brief, last_updated: str, health_summary: dict, prefere
         st.caption(f"Son guncelleme: {last_updated}")
         st.divider()
 
-        if st.button("Verileri Yenile", use_container_width=True):
+        if st.button("Verileri Yenile", key="sidebar_refresh", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
 
@@ -88,6 +120,7 @@ def render_sidebar(data, brief, last_updated: str, health_summary: dict, prefere
             export_df.to_csv(index=False, sep=";").encode("utf-8-sig"),
             file_name=f"AlphaTerminal_{pd.Timestamp.now().strftime('%Y%m%d_%H%M')}.csv",
             mime="text/csv",
+            key="sidebar_csv_download",
             use_container_width=True,
         )
 
@@ -118,7 +151,7 @@ def render_sidebar(data, brief, last_updated: str, health_summary: dict, prefere
                 st.markdown(f"- {clean_text(alert['title'])}: {clean_text(alert['detail'])}")
 
         st.divider()
-        with st.expander("Kaynak Sagligi", expanded=False):
+        with st.expander("Kaynak Sagligi", expanded=bool(health_summary.get("failed_sources"))):
             render_health_panel(health_summary)
 
         st.divider()
