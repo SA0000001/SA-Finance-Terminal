@@ -144,7 +144,7 @@ Stil:
 - Haberleri tek basina anlatma; rejime etkisi uzerinden kullan
 - Markdown tablo kullanma
 - Her ana bolum 1 kisa paragraf ve gerekirse 2-4 kisa madde icersin
-- Ayni metriği birden fazla bolumde uzun uzun tekrar etme
+- Ayni metrigi birden fazla bolumde uzun uzun tekrar etme
 - "Long / Short / Bekle" bolumunde net davranis kosullari ver
 - "Ekonomik Takvim" bolumunde en fazla 3 olay yaz
 - "Onemli Haberler" bolumunde en fazla 3 haber yaz
