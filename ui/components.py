@@ -34,7 +34,7 @@ def display_value(value, fallback: str = "Veri bekleniyor") -> str:
     return fallback if is_missing(value) else clean_text(value)
 
 
-def mcard(label: str, value: str, delta: str = "", accent_color: str = "--accent"):
+def mcard(label: str, value: str, delta: str = "", accent_color: str = "--accent", compact: bool = False):
     value_missing = is_missing(value)
     value = display_value(value)
     delta = clean_text(delta) if delta else ""
@@ -53,8 +53,10 @@ def mcard(label: str, value: str, delta: str = "", accent_color: str = "--accent
 
     value_class = "metric-value metric-placeholder" if value_missing else "metric-value"
 
+    card_classes = "metric-card compact-card" if compact else "metric-card"
+
     return f"""
-    <div class="metric-card" style="--card-accent: var({accent_color});">
+    <div class="{card_classes}" style="--card-accent: var({accent_color});">
         <div class="metric-label">{clean_text(label)}</div>
         <div class="{value_class}">{value}</div>
         {delta_html}
@@ -62,14 +64,33 @@ def mcard(label: str, value: str, delta: str = "", accent_color: str = "--accent
     """
 
 
-def render_cards(items, cols=4, accent="--accent"):
+def render_cards(items, cols=4, accent="--accent", compact: bool = False):
     columns = st.columns(cols)
     for i, item in enumerate(items):
         label = item[0]
         value = item[1] if len(item) > 1 else PLACEHOLDER
         delta = item[2] if len(item) > 2 else ""
         with columns[i % cols]:
-            st.markdown(mcard(label, value, delta, accent), unsafe_allow_html=True)
+            st.markdown(mcard(label, value, delta, accent, compact=compact), unsafe_allow_html=True)
+
+
+def render_compact_metric_strip(items, cols=5):
+    columns = st.columns(cols)
+    for i, item in enumerate(items):
+        label = item[0]
+        value = item[1] if len(item) > 1 else PLACEHOLDER
+        tone = item[2] if len(item) > 2 else ""
+        with columns[i % cols]:
+            st.markdown(
+                f"""
+                <div class="compact-strip-card">
+                    <div class="compact-strip-label">{clean_text(label)}</div>
+                    <div class="compact-strip-value">{display_value(value)}</div>
+                    <div class="compact-strip-tone">{clean_text(tone) if tone else "&nbsp;"}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
 
 def cat(title: str, icon: str = ""):

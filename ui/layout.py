@@ -47,45 +47,68 @@ def render_page_header(last_updated: str, health_summary: dict, brief: dict, pre
     )
     render_health_bar(health_summary)
     st.markdown(
-        "<div class='section-lead'>Ilk katman rejimi ve yonu verir; ikinci katman piyasa, akis ve sinyal yuzeylerini aciklar; derin katmanlar ise detay veri atlasini ve raporlari tasir.</div>",
+        "<div class='section-lead'>Merkezde rejim, sekmelerde detay katmanlari var; ust yuzey karar verir, alt yuzeyler teyit eder.</div>",
         unsafe_allow_html=True,
     )
 
 
-def render_health_alerts(health_summary: dict):
+def render_status_hub(last_updated: str, health_summary: dict, alerts: list[dict], analytics: dict):
     issue_rows = [row for row in health_summary.get("rows", []) if row.get("Durum") != "OK"]
-    if not issue_rows:
-        return
-
-    issue_html = "".join(
+    scores = analytics["scores"]
+    issue_count = len(issue_rows)
+    alert_count = len(alerts)
+    summary_copy = (
+        f"{issue_count} kaynak dikkat istiyor; detaylar sadece burada tutuluyor."
+        if issue_count
+        else "Kritik veri problemi yok; health detayi yalnizca gerektiginde acilir."
+    )
+    stats_html = "".join(
         f"""
-        <div class="health-issue-row">
-            <div>
-                <div class="health-issue-source">{clean_text(row['Kaynak'])}</div>
-                <div class="health-issue-error">{clean_text(row['Hata'])}</div>
-            </div>
-            <div class="health-issue-meta">
-                <span class="health-issue-status health-issue-{row['Durum'].lower()}">{clean_text(row['Durum'])}</span>
-                <span>{clean_text(row['Son basarili'])}</span>
-            </div>
+        <div class="status-hub-pill">
+            <span>{clean_text(label)}</span>
+            <strong>{clean_text(value)}</strong>
         </div>
         """
-        for row in issue_rows[:6]
+        for label, value in [
+            (bi_label("Updated", "Guncelleme"), last_updated),
+            (bi_label("Alerts", "Alarmlar"), str(alert_count)),
+            (bi_label("Issues", "Sorunlar"), str(issue_count)),
+            (bi_label("Confidence", "Guven"), f"{scores['confidence']}/100"),
+        ]
     )
     st.markdown(
         f"""
-        <div class="surface health-alert-surface">
-            <div class="panel-kicker">{clean_text(bi_label("Source Health", "Kaynak Sagligi"))}</div>
-            <div class="panel-title">Veri akisinda dikkat isteyen kaynaklar var</div>
-            <div class="panel-copy">
-                "Veri bekleniyor" gorunen alanlarin nedeni artik burada acik sekilde listelenir.
-                Fail ve stale kaynaklari soldaki panel acik olmasa bile bu yuzeyden gorebilirsin.
+        <div class="surface surface-compact status-hub">
+            <div class="panel-kicker">{clean_text(bi_label("Status Hub", "Durum Merkezi"))}</div>
+            <div class="status-hub-top">
+                <div>
+                    <div class="panel-title">Operasyon ozeti tek merkezde</div>
+                    <div class="panel-copy">{clean_text(summary_copy)}</div>
+                </div>
+                <div class="status-hub-stats">{stats_html}</div>
             </div>
-            <div class="health-issue-list">{issue_html}</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+    if issue_rows:
+        with st.expander("Source health details", expanded=False):
+            issue_html = "".join(
+                f"""
+                <div class="health-issue-row">
+                    <div>
+                        <div class="health-issue-source">{clean_text(row['Kaynak'])}</div>
+                        <div class="health-issue-error">{clean_text(row['Hata'])}</div>
+                    </div>
+                    <div class="health-issue-meta">
+                        <span class="health-issue-status health-issue-{row['Durum'].lower()}">{clean_text(row['Durum'])}</span>
+                        <span>{clean_text(row['Son basarili'])}</span>
+                    </div>
+                </div>
+                """
+                for row in issue_rows[:6]
+            )
+            st.markdown(f"<div class='health-issue-list'>{issue_html}</div>", unsafe_allow_html=True)
 
 
 def render_health_panel(health_summary: dict):
@@ -128,31 +151,12 @@ def render_sidebar(data, brief, last_updated: str, health_summary: dict, prefere
         st.markdown(
             f"""
             <div class="sidebar-note">
-                Komuta paneli; yenileme, disa aktarma, veri sagligi ve hizli operasyon notlari icin ayrildi.
-                Ana ekran ise tamamen karar destek ve terminal akisina odaklandi.
+                Sidebar artik yalnizca operasyon isleri icin ayrildi: yenileme, disa aktarma ve sistem bilgisi.
+                Health ve canli durum detaylari ana yuzeydeki Status Hub'a tasindi.
             </div>
             """,
             unsafe_allow_html=True,
         )
-
-        st.markdown("#### Live Notes")
-        st.markdown(f"- Piyasa rejimi: {clean_text(brief['regime']['title'])}")
-        st.markdown(f"- Izlenen seviye: {clean_text(brief['focus']['detail'])}")
-        st.markdown(f"- ETF akisi: {clean_text(data.get('ETF_FLOW_TOTAL', '-'))}")
-        if health_summary.get("failed_sources"):
-            st.markdown(f"- Fallback kaynaklar: {clean_text(', '.join(health_summary['failed_sources'][:3]))}")
-        if health_summary.get("stale_sources"):
-            st.markdown(f"- Stale kaynaklar: {clean_text(', '.join(health_summary['stale_sources'][:3]))}")
-
-        if alerts:
-            st.divider()
-            st.markdown("#### Alert Queue")
-            for alert in alerts:
-                st.markdown(f"- {clean_text(alert['title'])}: {clean_text(alert['detail'])}")
-
-        st.divider()
-        with st.expander("Kaynak Sagligi", expanded=bool(health_summary.get("failed_sources"))):
-            render_health_panel(health_summary)
 
         st.divider()
         st.markdown(
