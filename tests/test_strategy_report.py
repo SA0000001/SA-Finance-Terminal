@@ -1,5 +1,5 @@
 from prompts.strategy_report import build_strategy_report_prompt
-from services.ai_service import _parse_report_payload
+from services.ai_service import _normalize_content, _parse_report_payload
 from services.market_data import _normalize_calendar_events
 
 
@@ -123,6 +123,32 @@ Lead metni
     assert "Kisa rapor" in parsed["terminal_report"]
     assert parsed["x_lead"] == "Lead metni"
     assert parsed["x_thread"].startswith("1/4")
+
+
+def test_normalize_content_supports_provider_style_content_parts():
+    content = [
+        {"type": "text", "text": "<terminal_report>Rapor</terminal_report>"},
+        {"type": "output_text", "output_text": "<x_lead>Lead</x_lead>"},
+        {"content": "<x_thread>1/4 A</x_thread>"},
+    ]
+
+    normalized = _normalize_content(content)
+
+    assert "<terminal_report>Rapor</terminal_report>" in normalized
+    assert "<x_lead>Lead</x_lead>" in normalized
+    assert "<x_thread>1/4 A</x_thread>" in normalized
+
+
+def test_parse_report_payload_falls_back_when_content_is_not_tagged_string():
+    data, brief, analytics, _, _ = _sample_context()
+    raw = [{"type": "text", "text": "Provider came back without tags"}]
+
+    parsed = _parse_report_payload(raw, data, brief, analytics)
+
+    assert "### Bugunun Ozeti" in parsed["terminal_report"]
+    assert parsed["x_lead"]
+    assert parsed["x_thread"].startswith("1/4")
+    assert "Provider came back without tags" in parsed["raw"]
 
 
 def test_normalize_calendar_events_keeps_only_near_high_impact_items():
