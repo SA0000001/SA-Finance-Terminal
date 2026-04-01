@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import re
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
@@ -120,6 +121,43 @@ def _format_timestamp(value: str | None) -> str:
 
 _SENSITIVE_QUERY_RE = re.compile(r"([?&](?:api_key|apikey|token|access_token|key)=)[^&\s]+", re.IGNORECASE)
 _URL_RE = re.compile(r"https?://[^\s]+", re.IGNORECASE)
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+_HEALTH_ERROR_FRAGMENT_RE = re.compile(
+    r'health-(?:issue-error|source-health-detail)">([^<]+)', re.IGNORECASE
+)
+
+
+def normalize_health_display_text(value) -> str:
+    if value in (None, ""):
+        return "-"
+
+    if isinstance(value, dict):
+        parts = [
+            normalize_health_display_text(item_value)
+            for item_value in value.values()
+            if normalize_health_display_text(item_value) != "-"
+        ]
+        return " | ".join(parts) if parts else "-"
+
+    if isinstance(value, (list, tuple, set)):
+        parts = [
+            normalize_health_display_text(item_value)
+            for item_value in value
+            if normalize_health_display_text(item_value) != "-"
+        ]
+        return " | ".join(parts) if parts else "-"
+
+    text = html.unescape(str(value)).replace("\r", " ").strip()
+    if not text:
+        return "-"
+
+    html_matches = [match.strip() for match in _HEALTH_ERROR_FRAGMENT_RE.findall(text) if match.strip()]
+    if html_matches:
+        text = " | ".join(html_matches)
+
+    text = _HTML_TAG_RE.sub(" ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text or "-"
 
 
 def _shorten_url(url: str) -> str:
@@ -132,8 +170,8 @@ def _shorten_url(url: str) -> str:
 
 
 def _format_error_for_display(source: str, error: str | None) -> str:
-    text = (error or "").strip()
-    if not text:
+    text = normalize_health_display_text(error)
+    if text == "-":
         return "-"
 
     lowered = text.lower()
@@ -146,7 +184,7 @@ def _format_error_for_display(source: str, error: str | None) -> str:
 
     text = _SENSITIVE_QUERY_RE.sub(r"\1[redacted]", text)
     text = _URL_RE.sub(lambda match: _shorten_url(match.group(0)), text)
-    text = re.sub(r"\s+", " ", text).strip()
+    text = normalize_health_display_text(text)
     return text
 
 
