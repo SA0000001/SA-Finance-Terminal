@@ -1,4 +1,5 @@
-from services.health import build_health_summary, merge_source_health
+from services.health import build_health_summary, merge_source_health, normalize_health_display_text
+from ui.layout import normalize_health_cell
 
 
 def test_merge_source_health_drops_inactive_fallback_sources():
@@ -104,3 +105,43 @@ def test_build_health_summary_maps_known_market_cap_parse_error_to_fallback_copy
     summary = build_health_summary(health_state)
 
     assert summary["rows"][0]["Hata"] == "TradingView market cap metni parse edilemedi; CoinGecko fallback kullaniliyor."
+
+
+def test_build_health_summary_flattens_html_markup_fragments_to_plain_text():
+    health_state = {
+        "CoinGecko Global": {
+            "source": "CoinGecko Global",
+            "ok": False,
+            "latency_ms": 80.0,
+            "fetched_at": "2026-04-01T08:00:00+00:00",
+            "last_success_at": None,
+            "error": """
+                <div class="health-issue-row">
+                    <div>
+                        <div class="health-issue-source">TradingView Market Cap</div>
+                        <div class="health-issue-error">TradingView market cap metni parse edilemedi; CoinGecko fallback kullaniliyor.</div>
+                    </div>
+                </div>
+            """,
+            "stale_after_seconds": 900,
+        }
+    }
+
+    summary = build_health_summary(health_state)
+
+    assert summary["rows"][0]["Hata"] == "TradingView market cap metni parse edilemedi; CoinGecko fallback kullaniliyor."
+
+
+def test_normalize_health_display_text_handles_nested_values():
+    value = [
+        None,
+        {"error": "<div>TradingView USDT.D</div>", "detail": "Parse error: tradingview usdt.d not found"},
+    ]
+
+    assert normalize_health_display_text(value) == "TradingView USDT.D | Parse error: tradingview usdt.d not found"
+
+
+def test_normalize_health_cell_returns_plain_text_for_html_fragments():
+    value = '<div class="health-issue-error">TradingView market cap metni parse edilemedi; CoinGecko fallback kullaniliyor.</div>'
+
+    assert normalize_health_cell(value) == "TradingView market cap metni parse edilemedi; CoinGecko fallback kullaniliyor."
