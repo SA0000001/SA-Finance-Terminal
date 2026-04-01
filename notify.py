@@ -16,7 +16,7 @@ from services.preferences import DEFAULT_PREFERENCES, load_preferences
 
 DEFAULT_MODEL = "google/gemini-2.5-flash"
 DEFAULT_DEPTH = "Orta"
-TELEGRAM_MESSAGE_LIMIT = 3500
+TELEGRAM_MESSAGE_LIMIT = 6000
 ISTANBUL_TZ = ZoneInfo("Europe/Istanbul")
 
 
