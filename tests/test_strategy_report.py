@@ -8,26 +8,82 @@ def _sample_context():
         "BTC_P": "$67,000",
         "BTC_C": "1.2%",
         "BTC_7D": "4.8%",
+        "Dom": "%55.4",
+        "ETH_Dom": "%10.8",
         "FR": "%0.0030",
         "OI": "2,900,000 BTC",
         "LS_Ratio": "1.08",
+        "Long_Pct": "%51.9",
+        "Short_Pct": "%48.1",
         "Taker": "1.02",
         "ETF_FLOW_TOTAL": "+92.0M $",
         "ETF_FLOW_DATE": "01 Apr 2026",
         "ETF_FLOW_SOURCE": "Farside",
+        "Total_Stable": "$314.3B",
+        "USDT_MCap": "$184.0B",
+        "USDC_MCap": "$77.4B",
+        "DAI_MCap": "$4.7B",
+        "USDT_Dom_Stable": "%58.5",
         "USDT_D": "%7.20",
         "STABLE_C_D": "%11.10",
         "VIX": "19.2",
+        "VIX_C": "-17.45%",
         "DXY": "98.8",
+        "DXY_C": "-0.61%",
         "FED": "%3.50",
         "US10Y": "4.05",
+        "US10Y_C": "-0.71%",
+        "SP500": "6,522.41",
+        "SP500_C": "2.82%",
+        "NASDAQ": "21,574.48",
+        "NASDAQ_C": "3.75%",
+        "DAX": "22,680.04",
+        "DAX_C": "0.52%",
+        "NIKKEI": "51,885.85",
+        "NIKKEI_C": "-2.79%",
+        "GOLD": "$4,712.60",
+        "GOLD_C": "4.12%",
+        "SILVER": "$75.41",
+        "SILVER_C": "7.23%",
+        "OIL": "$102.09",
+        "OIL_C": "-0.77%",
         "TOTAL_CAP": "$2.45T",
+        "TOTAL_CAP_NUM": 2.45e12,
         "TOTAL2_CAP": "$1.12T",
+        "TOTAL2_CAP_NUM": 1.12e12,
         "TOTAL3_CAP": "$0.84T",
+        "TOTAL3_CAP_NUM": 0.84e12,
+        "OTHERS_CAP": "$0.29T",
+        "OTHERS_CAP_NUM": 0.29e12,
         "ORDERBOOK_SIGNAL": "Ortak destek guclu",
         "ORDERBOOK_SIGNAL_DETAIL": "Kraken ve Coinbase destekte hizali",
+        "ORDERBOOK_SOURCES": "Kraken | OKX | Coinbase",
         "Sup_Wall": "$66,800",
         "Res_Wall": "$68,900",
+        "ETH_P": "$2,100.30",
+        "ETH_C": "1.10%",
+        "ETH_7D": "-2.53%",
+        "SOL_P": "$82.96",
+        "SOL_C": "-1.07%",
+        "SOL_7D": "-8.89%",
+        "BNB_P": "$617.85",
+        "BNB_C": "0.15%",
+        "BNB_7D": "-3.27%",
+        "XRP_P": "$1.34",
+        "XRP_C": "0.11%",
+        "XRP_7D": "-5.26%",
+        "ADA_P": "$0.24",
+        "ADA_C": "-1.05%",
+        "ADA_7D": "-8.99%",
+        "AVAX_P": "$8.93",
+        "AVAX_C": "-1.17%",
+        "AVAX_7D": "-6.92%",
+        "DOT_P": "$1.26",
+        "DOT_C": "-0.19%",
+        "DOT_7D": "-10.46%",
+        "LINK_P": "$8.79",
+        "LINK_C": "-0.21%",
+        "LINK_7D": "-4.72%",
         "NEWS": [{"title": "ETF flows stay positive", "source": "CoinDesk", "time": "01 Apr 09:00"}],
         "ECONOMIC_CALENDAR_SOURCE": "FairEconomy",
         "ECONOMIC_CALENDAR": [
@@ -101,6 +157,12 @@ def test_strategy_report_prompt_includes_new_sections_and_tags():
     assert "SA Finance Alpha Makro Bulteni Giris" in prompt
     assert "Long / Short / Bekle ve Kritik Riskler" in prompt
     assert "1/5 ..." in prompt
+    assert "Fragile confidence" in prompt
+    assert "SP500:" in prompt
+    assert "NASDAQ:" in prompt
+    assert "GOLD:" in prompt
+    assert "ETH:" in prompt
+    assert "LINK:" in prompt
 
 
 def test_parse_report_payload_splits_tagged_response():
@@ -148,8 +210,15 @@ def test_parse_report_payload_falls_back_when_content_is_not_tagged_string():
     parsed = _parse_report_payload(raw, data, brief, analytics)
 
     assert "### SA Finance Alpha Makro Bulteni Giris" in parsed["terminal_report"]
+    assert "Makro Ortam ve Risk Istahi" in parsed["terminal_report"]
+    assert "SP500" in parsed["terminal_report"]
+    assert "ETF, Stablecoin ve Altcoinler" in parsed["terminal_report"]
+    assert "ETH" in parsed["terminal_report"]
+    assert "Fragile confidence" not in parsed["terminal_report"]
+    assert "Mixed overlay" not in parsed["terminal_report"]
     assert parsed["x_lead"]
     assert parsed["x_thread"].startswith("1/5")
+    assert "BTC'den" in parsed["x_thread"]
     assert "Provider came back without tags" in parsed["raw"]
 
 
