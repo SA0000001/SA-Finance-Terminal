@@ -143,7 +143,9 @@ def _confidence_label(score: int) -> str:
     return "Low confidence"
 
 
-def _regime_confidence_score(factors: dict[str, dict], overall: int, fragility: dict, invalidate_conditions: list[str]) -> int:
+def _regime_confidence_score(
+    factors: dict[str, dict], overall: int, fragility: dict, invalidate_conditions: list[str]
+) -> int:
     data_confidence = sum(factor["confidence"] * factor["weight"] for factor in factors.values())
     dominant_factor = max(factors.values(), key=lambda factor: factor["contribution"])
     weakest_factor = min(factors.values(), key=lambda factor: factor["score"])
@@ -152,8 +154,12 @@ def _regime_confidence_score(factors: dict[str, dict], overall: int, fragility: 
     crypto_breadth = participation["subfactors"]["crypto"]["score"]
     alignment_gap = abs(macro_breadth - crypto_breadth)
 
-    regime_clarity = clamp_score((abs(overall - 50) * 1.25) + ((dominant_factor["score"] - weakest_factor["score"]) * 0.28))
-    driver_strength = clamp_score(((dominant_factor["score"] - 50) * 1.35) + ((dominant_factor["contribution"] / dominant_factor["weight"]) - 45))
+    regime_clarity = clamp_score(
+        (abs(overall - 50) * 1.25) + ((dominant_factor["score"] - weakest_factor["score"]) * 0.28)
+    )
+    driver_strength = clamp_score(
+        ((dominant_factor["score"] - 50) * 1.35) + ((dominant_factor["contribution"] / dominant_factor["weight"]) - 45)
+    )
     alignment_score = clamp_score(100 - (alignment_gap * 3.4))
     stability_mix = clamp_score((factors["volatility"]["score"] * 0.58) + (factors["positioning"]["score"] * 0.42))
 
@@ -234,16 +240,50 @@ def _build_liquidity_factor(data: dict) -> dict:
     usdt_d = parse_number(data.get("USDT_D"))
 
     metrics = [
-        {"label": "ETF akislari", "display": _display(data.get("ETF_FLOW_TOTAL")), "score": _linear_score(etf_flow, -250, 250), "weight": 0.30},
-        {"label": "DXY seviyesi", "display": _display(data.get("DXY")), "score": _linear_score(dxy, 96, 106, inverse=True), "weight": 0.16},
-        {"label": "DXY trendi", "display": _display(data.get("DXY_C")), "score": _trend_score(dxy_change, favorable_up=False, scale=1.2), "weight": 0.10},
-        {"label": "US10Y", "display": _display(data.get("US10Y")), "score": _linear_score(us10y, 3.4, 5.2, inverse=True), "weight": 0.14},
-        {"label": "Yield trendi", "display": _display(data.get("US10Y_C")), "score": _trend_score(us10y_change, favorable_up=False, scale=2.0), "weight": 0.08},
-        {"label": "Stable.C.D", "display": _display(data.get("STABLE_C_D")), "score": _linear_score(stable_cd, 6.0, 15.0, inverse=True), "weight": 0.10},
-        {"label": "USDT.D", "display": _display(data.get("USDT_D")), "score": _linear_score(usdt_d, 4.5, 9.0, inverse=True), "weight": 0.12},
+        {
+            "label": "ETF akislari",
+            "display": _display(data.get("ETF_FLOW_TOTAL")),
+            "score": _linear_score(etf_flow, -250, 250),
+            "weight": 0.30,
+        },
+        {
+            "label": "DXY seviyesi",
+            "display": _display(data.get("DXY")),
+            "score": _linear_score(dxy, 96, 106, inverse=True),
+            "weight": 0.16,
+        },
+        {
+            "label": "DXY trendi",
+            "display": _display(data.get("DXY_C")),
+            "score": _trend_score(dxy_change, favorable_up=False, scale=1.2),
+            "weight": 0.10,
+        },
+        {
+            "label": "US10Y",
+            "display": _display(data.get("US10Y")),
+            "score": _linear_score(us10y, 3.4, 5.2, inverse=True),
+            "weight": 0.14,
+        },
+        {
+            "label": "Yield trendi",
+            "display": _display(data.get("US10Y_C")),
+            "score": _trend_score(us10y_change, favorable_up=False, scale=2.0),
+            "weight": 0.08,
+        },
+        {
+            "label": "Stable.C.D",
+            "display": _display(data.get("STABLE_C_D")),
+            "score": _linear_score(stable_cd, 6.0, 15.0, inverse=True),
+            "weight": 0.10,
+        },
+        {
+            "label": "USDT.D",
+            "display": _display(data.get("USDT_D")),
+            "score": _linear_score(usdt_d, 4.5, 9.0, inverse=True),
+            "weight": 0.12,
+        },
     ]
     score = _weighted_metric_score(metrics)
-    confidence = _confidence_score(metrics)
     trend_mix = clamp_score(
         (_trend_score(dxy_change, favorable_up=False, scale=1.2) * 0.4)
         + (_trend_score(us10y_change, favorable_up=False, scale=2.0) * 0.3)
@@ -273,11 +313,36 @@ def _build_volatility_factor(data: dict) -> dict:
     accel = abs((btc_change or 0.0) - ((btc_7d or 0.0) / 7))
 
     metrics = [
-        {"label": "VIX seviyesi", "display": _display(data.get("VIX")), "score": _linear_score(vix, 12, 40, inverse=True), "weight": 0.42},
-        {"label": "VIX trendi", "display": _display(data.get("VIX_C")), "score": _trend_score(vix_change, favorable_up=False, scale=6.0), "weight": 0.12},
-        {"label": "BTC 24s oynaklik", "display": _display(data.get("BTC_C")), "score": _linear_score(abs(btc_change) if btc_change is not None else None, 0.5, 8.0, inverse=True), "weight": 0.24},
-        {"label": "BTC 7g hareketi", "display": _display(data.get("BTC_7D")), "score": _linear_score(abs(btc_7d) if btc_7d is not None else None, 2.0, 18.0, inverse=True), "weight": 0.14},
-        {"label": "Vol hizlanmasi", "display": f"{accel:.2f}%" if accel else PLACEHOLDER, "score": _linear_score(accel, 0.4, 5.0, inverse=True), "weight": 0.08},
+        {
+            "label": "VIX seviyesi",
+            "display": _display(data.get("VIX")),
+            "score": _linear_score(vix, 12, 40, inverse=True),
+            "weight": 0.42,
+        },
+        {
+            "label": "VIX trendi",
+            "display": _display(data.get("VIX_C")),
+            "score": _trend_score(vix_change, favorable_up=False, scale=6.0),
+            "weight": 0.12,
+        },
+        {
+            "label": "BTC 24s oynaklik",
+            "display": _display(data.get("BTC_C")),
+            "score": _linear_score(abs(btc_change) if btc_change is not None else None, 0.5, 8.0, inverse=True),
+            "weight": 0.24,
+        },
+        {
+            "label": "BTC 7g hareketi",
+            "display": _display(data.get("BTC_7D")),
+            "score": _linear_score(abs(btc_7d) if btc_7d is not None else None, 2.0, 18.0, inverse=True),
+            "weight": 0.14,
+        },
+        {
+            "label": "Vol hizlanmasi",
+            "display": f"{accel:.2f}%" if accel else PLACEHOLDER,
+            "score": _linear_score(accel, 0.4, 5.0, inverse=True),
+            "weight": 0.08,
+        },
     ]
     score = _weighted_metric_score(metrics)
     trend_mix = clamp_score(
@@ -314,11 +379,36 @@ def _build_positioning_factor(data: dict) -> dict:
         divergence_score = 62
 
     metrics = [
-        {"label": "Funding dengesi", "display": _display(data.get("FR")), "score": _balance_score(funding, 0.0, 0.006, 0.03), "weight": 0.30},
-        {"label": "L/S dengesi", "display": _display(data.get("LS_Ratio")), "score": _balance_score(ls_ratio, 1.0, 0.10, 0.55), "weight": 0.24},
-        {"label": "Taker akis", "display": _display(data.get("Taker")), "score": _balance_score(taker, 1.0, 0.05, 0.30), "weight": 0.20},
-        {"label": "Open interest", "display": _display(data.get("OI")), "score": _linear_score(open_interest, 1_800_000, 3_800_000, inverse=True), "weight": 0.16},
-        {"label": "Fiyat-akis uyumu", "display": f"BTC { _display(data.get('BTC_C')) } | ETF { _display(data.get('ETF_FLOW_TOTAL')) }", "score": divergence_score, "weight": 0.10},
+        {
+            "label": "Funding dengesi",
+            "display": _display(data.get("FR")),
+            "score": _balance_score(funding, 0.0, 0.006, 0.03),
+            "weight": 0.30,
+        },
+        {
+            "label": "L/S dengesi",
+            "display": _display(data.get("LS_Ratio")),
+            "score": _balance_score(ls_ratio, 1.0, 0.10, 0.55),
+            "weight": 0.24,
+        },
+        {
+            "label": "Taker akis",
+            "display": _display(data.get("Taker")),
+            "score": _balance_score(taker, 1.0, 0.05, 0.30),
+            "weight": 0.20,
+        },
+        {
+            "label": "Open interest",
+            "display": _display(data.get("OI")),
+            "score": _linear_score(open_interest, 1_800_000, 3_800_000, inverse=True),
+            "weight": 0.16,
+        },
+        {
+            "label": "Fiyat-akis uyumu",
+            "display": f"BTC { _display(data.get('BTC_C')) } | ETF { _display(data.get('ETF_FLOW_TOTAL')) }",
+            "score": divergence_score,
+            "weight": 0.10,
+        },
     ]
     score = _weighted_metric_score(metrics)
     crowding_pressure = clamp_score(
@@ -443,12 +533,42 @@ def _build_crypto_breadth_factor(data: dict) -> dict:
         trend_support = 32
 
     metrics = [
-        {"label": "TOTAL2 katilimi", "display": f"{total2_ratio:.1f}%" if total2_ratio is not None else PLACEHOLDER, "score": _linear_score(total2_ratio, 35, 55), "weight": 0.22},
-        {"label": "TOTAL3 katilimi", "display": f"{total3_ratio:.1f}%" if total3_ratio is not None else PLACEHOLDER, "score": _linear_score(total3_ratio, 20, 42), "weight": 0.26},
-        {"label": "OTHERS payi", "display": f"{others_ratio:.1f}%" if others_ratio is not None else PLACEHOLDER, "score": _linear_score(others_ratio, 4, 16), "weight": 0.12},
-        {"label": "BTC dominance", "display": _display(data.get("Dom")), "score": _linear_score(btc_dom, 46, 60, inverse=True), "weight": 0.18},
-        {"label": "ETH participation", "display": _display(data.get("ETH_Dom")), "score": _linear_score(eth_dom, 8, 20), "weight": 0.10},
-        {"label": "Alt participation teyidi", "display": _display(data.get("BTC_C")), "score": trend_support, "weight": 0.12},
+        {
+            "label": "TOTAL2 katilimi",
+            "display": f"{total2_ratio:.1f}%" if total2_ratio is not None else PLACEHOLDER,
+            "score": _linear_score(total2_ratio, 35, 55),
+            "weight": 0.22,
+        },
+        {
+            "label": "TOTAL3 katilimi",
+            "display": f"{total3_ratio:.1f}%" if total3_ratio is not None else PLACEHOLDER,
+            "score": _linear_score(total3_ratio, 20, 42),
+            "weight": 0.26,
+        },
+        {
+            "label": "OTHERS payi",
+            "display": f"{others_ratio:.1f}%" if others_ratio is not None else PLACEHOLDER,
+            "score": _linear_score(others_ratio, 4, 16),
+            "weight": 0.12,
+        },
+        {
+            "label": "BTC dominance",
+            "display": _display(data.get("Dom")),
+            "score": _linear_score(btc_dom, 46, 60, inverse=True),
+            "weight": 0.18,
+        },
+        {
+            "label": "ETH participation",
+            "display": _display(data.get("ETH_Dom")),
+            "score": _linear_score(eth_dom, 8, 20),
+            "weight": 0.10,
+        },
+        {
+            "label": "Alt participation teyidi",
+            "display": _display(data.get("BTC_C")),
+            "score": trend_support,
+            "weight": 0.12,
+        },
     ]
     score = _weighted_metric_score(metrics)
     confidence = _confidence_score(metrics)
@@ -524,8 +644,12 @@ def _build_participation_factor(data: dict) -> dict:
         ],
         "metrics": metrics,
         "subfactors": {"macro": macro, "crypto": crypto},
-        "confidence": clamp_score(( _confidence_score(macro["metrics"]) * 0.45) + (_confidence_score(crypto["metrics"]) * 0.55)),
-        "confidence_label": _confidence_label(clamp_score(( _confidence_score(macro["metrics"]) * 0.45) + (_confidence_score(crypto["metrics"]) * 0.55))),
+        "confidence": clamp_score(
+            (_confidence_score(macro["metrics"]) * 0.45) + (_confidence_score(crypto["metrics"]) * 0.55)
+        ),
+        "confidence_label": _confidence_label(
+            clamp_score((_confidence_score(macro["metrics"]) * 0.45) + (_confidence_score(crypto["metrics"]) * 0.55))
+        ),
     }
 
 
@@ -692,9 +816,13 @@ def build_regime_scores(data: dict) -> dict:
     if crypto_breadth_factor["score"] < 50:
         invalidate_conditions.append("Crypto breadth 50 altinda kalirsa hareket BTC-odakli ve dar tabanli hale gelir.")
     if abs(macro_breadth_factor["score"] - crypto_breadth_factor["score"]) >= 20:
-        invalidate_conditions.append("Macro ve crypto katilimi daha fazla ayrisirse composite participation kirilganlasir.")
+        invalidate_conditions.append(
+            "Macro ve crypto katilimi daha fazla ayrisirse composite participation kirilganlasir."
+        )
     if factors["volatility"]["score"] < 55:
-        invalidate_conditions.append(f"VIX {data.get('VIX', PLACEHOLDER)} uzerinde yukselmeye devam ederse stres artar.")
+        invalidate_conditions.append(
+            f"VIX {data.get('VIX', PLACEHOLDER)} uzerinde yukselmeye devam ederse stres artar."
+        )
     if factors["positioning"]["score"] < 50:
         invalidate_conditions.append("Funding, L/S ve taker tek yone daha fazla yigilirsa crowding artar.")
     if factors["liquidity"]["score"] < 55:
