@@ -61,47 +61,63 @@ def _extract_tagged_section(text, tag: str) -> str:
 def _fallback_x_lead(data: dict, analytics: dict) -> str:
     scores = analytics.get("scores", {})
     return (
-        f"Makro Bulten: BTC {_safe(data.get('BTC_P'))}, rejim {scores.get('overall', '-')}/100 "
-        f"({_safe(scores.get('overlay'))}). En kritik izlenecekler: ETF {_safe(data.get('ETF_FLOW_TOTAL'))}, "
-        f"DXY {_safe(data.get('DXY'))}, VIX {_safe(data.get('VIX'))}."
+        f"Makro Bulten | BTC {_safe(data.get('BTC_P'))}, rejim {scores.get('overall', '-')}/100 "
+        f"({_safe(scores.get('overlay'))}). Ana konu {_safe(scores.get('dominant_driver'))}; "
+        f"zayif halka {_safe(scores.get('weakest_driver'))}. ETF {_safe(data.get('ETF_FLOW_TOTAL'))}, "
+        f"DXY {_safe(data.get('DXY'))}, VIX {_safe(data.get('VIX'))} bugunun ana tetikleyicileri."
     )[:280]
 
 
 def _fallback_x_thread(data: dict, analytics: dict) -> str:
     scores = analytics.get("scores", {})
     items = [
-        f"1/4 Rejim {scores.get('overall', '-')}/100 ve ana etiket {_safe(scores.get('overlay'))}. Dominant driver {_safe(scores.get('dominant_driver'))}, weakest link {_safe(scores.get('weakest_driver'))}.",
-        f"2/4 Makro taraf: DXY {_safe(data.get('DXY'))}, US10Y {_safe(data.get('US10Y'))}, VIX {_safe(data.get('VIX'))}, ETF netflow {_safe(data.get('ETF_FLOW_TOTAL'))}.",
-        f"3/4 Kripto internalleri: funding {_safe(data.get('FR'))}, OI {_safe(data.get('OI'))}, L/S {_safe(data.get('LS_Ratio'))}, Taker {_safe(data.get('Taker'))}.",
-        f"4/4 Seviyeler: destek {_safe(data.get('Sup_Wall'))}, direnc {_safe(data.get('Res_Wall'))}. Invalidate: {(_safe(' | '.join(scores.get('invalidate_conditions', [])[:1])))}",
+        f"1/5 Rejim {scores.get('overall', '-')}/100 ve etiket {_safe(scores.get('overlay'))}. Ana cikarim: {_safe(scores.get('summary'))}.",
+        f"2/5 Makro taraf: DXY {_safe(data.get('DXY'))}, US10Y {_safe(data.get('US10Y'))}, VIX {_safe(data.get('VIX'))}, ETF netflow {_safe(data.get('ETF_FLOW_TOTAL'))}.",
+        f"3/5 BTC ve turev: funding {_safe(data.get('FR'))}, OI {_safe(data.get('OI'))}, L/S {_safe(data.get('LS_Ratio'))}, Taker {_safe(data.get('Taker'))}.",
+        f"4/5 Katilim ve akis: dominant driver {_safe(scores.get('dominant_driver'))}, weakest link {_safe(scores.get('weakest_driver'))}, BTC {_safe(data.get('BTC_7D'))} 7g.",
+        f"5/5 Seviyeler: destek {_safe(data.get('Sup_Wall'))}, direnc {_safe(data.get('Res_Wall'))}. Invalidate: {_safe(' | '.join(scores.get('invalidate_conditions', [])[:1]))}",
     ]
     return "\n".join(items)
 
 
 def _fallback_terminal_report(data: dict, brief: dict, analytics: dict) -> str:
     scores = analytics.get("scores", {})
+    participation = scores.get("participation", {})
+    macro_breadth = participation.get("subfactors", {}).get("macro", {})
+    crypto_breadth = participation.get("subfactors", {}).get("crypto", {})
+    news = data.get("NEWS", [])
+    top_news = news[0].get("title") if news else "-"
     return "\n".join(
         [
-            "### Bugunun Ozeti",
-            f"BTC {_safe(data.get('BTC_P'))} seviyesinde. Rejim {scores.get('overall', '-')}/100 ve {_safe(scores.get('overlay'))}.",
+            "### SA Finance Alpha Makro Bulteni Giris",
+            f"Gunun ana cercevesi BTC {_safe(data.get('BTC_P'))}, rejim {scores.get('overall', '-')}/100 ve {_safe(scores.get('overlay'))}. Bu not, makro risk istahi ile kripto internallerini tek akista okur.",
             "",
-            "### Rejim ve Bias",
-            f"Bias: {_safe(scores.get('bias'))}",
+            "### Gunluk Harita ve Ana Cikarim",
+            f"Dominant driver {_safe(scores.get('dominant_driver'))}, weakest link {_safe(scores.get('weakest_driver'))}. Gunun davranis cizgisi: {_safe(scores.get('bias'))}",
             "",
-            "### Makro Suruculer",
-            f"DXY {_safe(data.get('DXY'))}, VIX {_safe(data.get('VIX'))}, ETF {_safe(data.get('ETF_FLOW_TOTAL'))}.",
+            "### Makro Ortam ve Risk Istahi",
+            f"DXY {_safe(data.get('DXY'))}, US10Y {_safe(data.get('US10Y'))}, VIX {_safe(data.get('VIX'))} ve ETF akisi {_safe(data.get('ETF_FLOW_TOTAL'))} birlikte okundugunda risk istahi {_safe(scores.get('overlay'))} bolgesinde. Neden onemli: bu blok bozulursa rejim destegi hizla zayiflar.",
             "",
-            "### Kripto Ic Gorunum",
-            f"Funding {_safe(data.get('FR'))}, OI {_safe(data.get('OI'))}, L/S {_safe(data.get('LS_Ratio'))}, Taker {_safe(data.get('Taker'))}.",
+            "### BTC, Turev ve Order Book Analizi",
+            f"BTC {_safe(data.get('BTC_P'))} seviyesinde; funding {_safe(data.get('FR'))}, OI {_safe(data.get('OI'))}, L/S {_safe(data.get('LS_Ratio'))}, taker {_safe(data.get('Taker'))}. Order book sinyali {_safe(data.get('ORDERBOOK_SIGNAL'))}; detail {_safe(data.get('ORDERBOOK_SIGNAL_DETAIL'))}.",
             "",
-            "### Takvim ve Katalizorler",
-            f"Haber akisi: {_safe(data.get('NEWS', [{}])[0].get('title') if data.get('NEWS') else '-')} | Takvim kaynagi: {_safe(data.get('ECONOMIC_CALENDAR_SOURCE'))}",
+            "### ETF, Stablecoin ve Altcoinler",
+            f"ETF netflow {_safe(data.get('ETF_FLOW_TOTAL'))}, USDT.D {_safe(data.get('USDT_D'))}, Stable.C.D {_safe(data.get('STABLE_C_D'))}. Neden onemli: spot talep ile ic likidite ayni yondeyse trend daha saglikli okunur.",
             "",
-            "### Seviyeler ve Invalidation",
-            f"Destek {_safe(data.get('Sup_Wall'))}, direnc {_safe(data.get('Res_Wall'))}. Invalidate: {_safe(' | '.join(scores.get('invalidate_conditions', [])[:2]))}",
+            "### Macro Breadth ve Crypto Breadth",
+            f"Macro breadth {_safe(macro_breadth.get('score'))}/100, crypto breadth {_safe(crypto_breadth.get('score'))}/100, composite participation {_safe(participation.get('score'))}/100. Neden onemli: katilim daralirsa fiyat yukselisi daha kirilgan kalir.",
             "",
-            "### Bugun Ne Izlenmeli?",
-            f"{_safe(' | '.join(scores.get('watch_next', [])[:3]))}",
+            "### Ekonomik Takvim ve Olasi Etkiler",
+            f"Takvim kaynagi {_safe(data.get('ECONOMIC_CALENDAR_SOURCE'))}. En yakin yuksek etkili veriler DXY, VIX ve faiz beklentileri uzerinden BTC oynakligini etkileyebilir.",
+            "",
+            "### Onemli Haberler ve Piyasa Yorumu",
+            f"Haber akisinin ana basligi: {_safe(top_news)}. Neden onemli: haber akisinin rejime etkisi ETF, stablecoin ve risk istahi tarafinda fiyat teyidi yaratabilir.",
+            "",
+            "### Long / Short / Bekle ve Kritik Riskler",
+            f"Long ancak destekler korunur ve ETF akisi zayiflamazsa anlamli. Short ancak {_safe(scores.get('weakest_driver'))} bozulmasi ve vol baskisi artarsa temizlesir. Bekle modu, invalidate kosullari fiyatin hemen ustune biniyorsa daha sagliklidir.",
+            "",
+            "### Kritik Seviyeler, Invalidation ve Bugun Ne Izlenmeli",
+            f"Destek {_safe(data.get('Sup_Wall'))}, direnc {_safe(data.get('Res_Wall'))}. Invalidate: {_safe(' | '.join(scores.get('invalidate_conditions', [])[:2]))}. Watch next: {_safe(' | '.join(scores.get('watch_next', [])[:3]))}",
         ]
     )
 
