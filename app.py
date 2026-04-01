@@ -1,3 +1,4 @@
+import html
 import os
 
 import pandas as pd
@@ -427,6 +428,36 @@ html, body, [data-testid="stAppViewContainer"] {
     padding: 24px 28px;
     line-height: 1.8;
     font-size: 0.95em;
+}
+
+.report-kicker {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.report-title {
+    color: var(--text);
+    font-size: 1.06rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.report-body {
+    color: var(--text-soft);
+    font-size: 0.96rem;
+    line-height: 1.75;
+    white-space: pre-wrap;
+}
+
+.x-post {
+    color: var(--text);
+    font-size: 0.94rem;
+    line-height: 1.7;
+    white-space: pre-wrap;
 }
 
 [data-testid="stTabs"] {
@@ -1664,6 +1695,8 @@ def init_preferences():
 def init_ui_state():
     if "control_rail_open" not in st.session_state:
         st.session_state["control_rail_open"] = True
+    if "macro_bulten_report" not in st.session_state:
+        st.session_state["macro_bulten_report"] = None
 
 
 def render_preferences_panel(host, key_prefix: str = "prefs", *, expanded: bool = False):
@@ -2347,19 +2380,55 @@ def render_downloads(data: dict, brief: dict, analytics: dict, alerts: list[dict
     )
 
 
-def render_ai_report(client, data: dict, report_depth: str):
-    st.subheader("AI Strateji Raporu")
-    st.caption(f"Prompt seviyesi: {report_depth}")
+def render_report_panel(kicker: str, title: str, body: str):
+    safe_body = html.escape(body or "Veri bekleniyor")
+    st.markdown(
+        f"""
+        <div class="report-box">
+            <div class="report-kicker">{clean_text(kicker)}</div>
+            <div class="report-title">{clean_text(title)}</div>
+            <div class="report-body">{safe_body}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_ai_report(client, data: dict, brief: dict, analytics: dict, alerts: list[dict], health_summary: dict, report_depth: str):
+    st.subheader("Makro Bulten")
+    st.caption(f"Derinlik: {report_depth} | Terminal raporu ve X paketi birlikte uretilir.")
     if not client:
         st.info("OPENROUTER_API_KEY yok. AI raporu pasif.")
         return
-    if st.button("AI raporu olustur", use_container_width=True):
+    if st.button("Makro Bulten olustur", use_container_width=True):
         with st.spinner("AI raporu hazirlaniyor..."):
             try:
-                report = generate_strategy_report(client, data, depth=report_depth)
-                st.markdown(f"<div class='report-box'>{report}</div>", unsafe_allow_html=True)
+                report = generate_strategy_report(
+                    client,
+                    data,
+                    brief,
+                    analytics,
+                    alerts,
+                    health_summary,
+                    depth=report_depth,
+                )
+                st.session_state["macro_bulten_report"] = report
             except (APIConnectionError, APITimeoutError, RateLimitError, APIError, ValueError) as exc:
                 st.error(f"AI hatasi: {exc}")
+                return
+
+    report = st.session_state.get("macro_bulten_report")
+    if not report:
+        st.info("Hazirlandiginda burada terminal icin Makro Bulten ve X paylasim paketleri birlikte gorunecek.")
+        return
+
+    render_report_panel("Macro Bulletin", "Makro Bulten", report.get("terminal_report", ""))
+    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+    lead_col, thread_col = st.columns([0.9, 1.1])
+    with lead_col:
+        render_report_panel("X Lead", "Tek Post Ozet", report.get("x_lead", ""))
+    with thread_col:
+        render_report_panel("X Thread Draft", "4 Maddelik Taslak", report.get("x_thread", ""))
 
 
 def render_news_tab(data: dict):
@@ -2747,7 +2816,7 @@ def render_report_tab(
             height=500,
         )
         st.divider()
-        render_ai_report(client, data, report_depth)
+        render_ai_report(client, data, brief, analytics, alerts, health_summary, report_depth)
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
     col_news, col_health = st.columns([1.15, 0.85])
     with col_news:
