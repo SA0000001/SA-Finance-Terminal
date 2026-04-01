@@ -63,8 +63,8 @@ st.markdown(
     --red: #ff7384;
     --yellow: #f1c56c;
     --text: #f4f7fb;
-    --muted: #92a6bf;
-    --text-soft: #b4c3d6;
+    --muted: #a1b2c7;
+    --text-soft: #c1cfdd;
     --mono: 'IBM Plex Mono', monospace;
     --sans: 'Manrope', sans-serif;
     --radius-sm: 14px;
@@ -173,11 +173,12 @@ html, body, [data-testid="stAppViewContainer"] {
 .summary-chip span {
     display: block;
     font-family: var(--mono);
-    font-size: 0.66rem;
+    font-size: 0.68rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--muted);
     margin-bottom: 6px;
+    line-height: 1.4;
 }
 
 .summary-chip strong {
@@ -556,9 +557,9 @@ html, body, [data-testid="stAppViewContainer"] {
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.034);
     border: 1px solid rgba(126, 158, 197, 0.12);
-    color: var(--text-soft);
-    font-size: 0.74rem;
-    line-height: 1.4;
+    color: var(--muted);
+    font-size: 0.72rem;
+    line-height: 1.45;
     font-family: var(--mono);
 }
 
@@ -586,7 +587,7 @@ html, body, [data-testid="stAppViewContainer"] {
 
 .regime-summary-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 12px;
     margin-top: 18px;
 }
@@ -601,10 +602,11 @@ html, body, [data-testid="stAppViewContainer"] {
 .summary-stat-label {
     display: block;
     color: var(--muted);
-    font-size: 0.66rem;
+    font-size: 0.68rem;
     font-family: var(--mono);
     letter-spacing: 0.12em;
     text-transform: uppercase;
+    line-height: 1.4;
 }
 
 .summary-stat-value {
@@ -632,8 +634,8 @@ html, body, [data-testid="stAppViewContainer"] {
 
 .contribution-copy {
     color: var(--text-soft);
-    font-size: 0.86rem;
-    line-height: 1.5;
+    font-size: 0.88rem;
+    line-height: 1.55;
 }
 
 .contribution-bar {
@@ -711,7 +713,7 @@ html, body, [data-testid="stAppViewContainer"] {
 
 .factor-weight {
     color: var(--muted);
-    font-size: 0.74rem;
+    font-size: 0.76rem;
     font-family: var(--mono);
     letter-spacing: 0.08em;
 }
@@ -745,15 +747,15 @@ html, body, [data-testid="stAppViewContainer"] {
 .factor-copy {
     margin-top: 10px;
     color: var(--text-soft);
-    font-size: 0.88rem;
-    line-height: 1.6;
+    font-size: 0.9rem;
+    line-height: 1.65;
 }
 
 .factor-meta {
     margin-top: 12px;
-    color: var(--muted);
-    font-size: 0.8rem;
-    line-height: 1.5;
+    color: var(--text-soft);
+    font-size: 0.82rem;
+    line-height: 1.55;
 }
 
 .driver-list {
@@ -766,8 +768,8 @@ html, body, [data-testid="stAppViewContainer"] {
     padding-top: 8px;
     border-top: 1px solid rgba(126, 158, 197, 0.1);
     color: var(--text-soft);
-    font-size: 0.84rem;
-    line-height: 1.55;
+    font-size: 0.86rem;
+    line-height: 1.6;
 }
 
 .matrix-table {
@@ -1021,8 +1023,8 @@ html, body, [data-testid="stAppViewContainer"] {
 
 .command-list-item {
     color: var(--muted);
-    font-size: 0.88rem;
-    line-height: 1.65;
+    font-size: 0.9rem;
+    line-height: 1.7;
     padding-left: 14px;
     position: relative;
 }
@@ -1099,9 +1101,9 @@ html, body, [data-testid="stAppViewContainer"] {
 }
 
 .signal-deck-copy {
-    color: var(--muted);
-    font-size: 0.88rem;
-    line-height: 1.65;
+    color: var(--text-soft);
+    font-size: 0.9rem;
+    line-height: 1.7;
     margin-top: 10px;
 }
 
@@ -1112,8 +1114,8 @@ html, body, [data-testid="stAppViewContainer"] {
     border: 1px solid rgba(126, 158, 197, 0.12);
     background: rgba(255, 255, 255, 0.028);
     color: var(--text-soft);
-    font-size: 0.82rem;
-    line-height: 1.55;
+    font-size: 0.84rem;
+    line-height: 1.6;
 }
 
 .signal-band-risk {
@@ -1146,9 +1148,10 @@ html, body, [data-testid="stAppViewContainer"] {
     align-items: center;
     padding: 6px 10px;
     border-radius: 999px;
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-family: var(--mono);
     color: var(--text-soft);
+    font-weight: 600;
     border: 1px solid rgba(126, 158, 197, 0.14);
     background: rgba(255, 255, 255, 0.028);
 }
@@ -1161,7 +1164,7 @@ html, body, [data-testid="stAppViewContainer"] {
 
 .signal-context-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 10px;
     margin-top: 14px;
 }
@@ -1175,19 +1178,20 @@ html, body, [data-testid="stAppViewContainer"] {
 
 .signal-context-label {
     display: block;
-    color: var(--muted);
-    font-size: 0.64rem;
+    color: var(--text-soft);
+    font-size: 0.66rem;
     font-family: var(--mono);
     letter-spacing: 0.12em;
     text-transform: uppercase;
+    line-height: 1.45;
 }
 
 .signal-context-value {
     display: block;
     margin-top: 8px;
     color: var(--text);
-    font-size: 0.84rem;
-    line-height: 1.45;
+    font-size: 0.88rem;
+    line-height: 1.5;
     font-weight: 700;
 }
 
@@ -1205,15 +1209,15 @@ html, body, [data-testid="stAppViewContainer"] {
 }
 
 .signal-mini-row span {
-    color: var(--muted);
-    font-size: 0.82rem;
-    line-height: 1.5;
+    color: var(--text-soft);
+    font-size: 0.84rem;
+    line-height: 1.55;
 }
 
 .signal-mini-row strong {
     color: var(--text);
-    font-size: 0.84rem;
-    line-height: 1.5;
+    font-size: 0.86rem;
+    line-height: 1.55;
     text-align: right;
 }
 
@@ -1923,24 +1927,24 @@ def build_execution_bridge(scores: dict, brief: dict) -> tuple[str, list[tuple[s
     if overall >= 60 and fragility <= 55:
         copy = "Bu rejimde destekten gelen teyitli devam hareketleri, gec kalinmis breakout kovalamaktan daha temiz bir davranis sunar."
         rows = [
-            (bi_label("Preferred Behavior", "Tercih"), "Support-led continuation"),
-            (bi_label("Aggressive Only If", "Sart"), "Participation aligned and vol contained"),
-            (bi_label("Defensive While", "Temkin"), "Crowding or VIX keeps rising"),
+            ("Preferred Behavior", "Support-led continuation"),
+            ("Aggressive Only If", "Participation aligned and vol contained"),
+            ("Defensive While", "Crowding or VIX keeps rising"),
         ]
         return copy, rows, brief["focus"]["badge"], "ok"
     if fragility >= 65 or participation < 55:
         copy = "Execution daha taktik olmali; seviyeler calissa bile participation ve crowding teyidi olmadan agresyon pahaliya mal olabilir."
         rows = [
-            (bi_label("Preferred Behavior", "Tercih"), "Fade extremes, respect walls"),
-            (bi_label("Aggressive Only If", "Sart"), "Breadth and funding improve together"),
-            (bi_label("Defensive While", "Temkin"), "Fragility stays elevated"),
+            ("Preferred Behavior", "Fade extremes, respect walls"),
+            ("Aggressive Only If", "Breadth and funding improve together"),
+            ("Defensive While", "Fragility stays elevated"),
         ]
         return copy, rows, "WATCH", "warn"
     copy = "Rejim yapici ama kusursuz degil; execution tarafinda sadece teyitli bolgelerde agirlik artirmak daha saglikli."
     rows = [
-        (bi_label("Preferred Behavior", "Tercih"), "Selective continuation"),
-        (bi_label("Aggressive Only If", "Sart"), "Support holds with calmer positioning"),
-        (bi_label("Defensive While", "Temkin"), "Participation diverges"),
+        ("Preferred Behavior", "Selective continuation"),
+        ("Aggressive Only If", "Support holds with calmer positioning"),
+        ("Defensive While", "Participation diverges"),
     ]
     return copy, rows, brief["focus"]["badge"], "warn"
 
@@ -2016,9 +2020,9 @@ def render_breadth_surface(title: str, factor: dict, rows: list[tuple[str, objec
         score_label=factor.get("confidence_label", ""),
         chips=[chip for chip in chips if chip],
         context_rows=[
-            (bi_label("Quality", "Kalite"), breadth_quality_label(factor)),
-            (bi_label("Dominant Driver", "Ana Surucu"), factor.get("primary_support", "-")),
-            (bi_label("Weakest Internal", "Ic Risk"), factor.get("primary_risk", "-")),
+            ("Quality", breadth_quality_label(factor)),
+            ("Driver", factor.get("primary_support", "-")),
+            ("Weakest", factor.get("primary_risk", "-")),
         ],
     )
 
@@ -2165,9 +2169,9 @@ def render_score_panel(analytics: dict):
     regime_cues = "".join(
         f"<div class='regime-cue'><span>{clean_text(label)}</span><strong>{clean_text(value)}</strong></div>"
         for label, value in [
-            (bi_label("Dominant Driver", "Ana Surucu"), scores["dominant_driver"]),
-            (bi_label("Weakest Link", "En Zayif Halka"), scores["weakest_driver"]),
-            (bi_label("Confidence", "Guven"), f"{scores['confidence']}/100"),
+            ("Dominant Driver", scores["dominant_driver"]),
+            ("Weakest Link", scores["weakest_driver"]),
+            ("Confidence", f"{scores['confidence']}/100"),
         ]
     )
     factor_html = ""
@@ -2214,20 +2218,16 @@ def render_score_panel(analytics: dict):
                     <div class="regime-cue-row">{regime_cues}</div>
                     <div class="regime-summary-grid">
                         <div class="summary-stat">
-                            <span class="summary-stat-label">{clean_text(bi_label("Base Score", "Baz Skor"))}</span>
+                            <span class="summary-stat-label">Base Score</span>
                             <span class="summary-stat-value">{scores['base_score']}/100</span>
                         </div>
                         <div class="summary-stat">
-                            <span class="summary-stat-label">{clean_text(bi_label("Fragility Penalty", "Kirilganlik Cezasi"))}</span>
+                            <span class="summary-stat-label">Fragility Penalty</span>
                             <span class="summary-stat-value">-{scores['penalty']}</span>
                         </div>
                         <div class="summary-stat">
-                            <span class="summary-stat-label">{clean_text(bi_label("Dominant Driver", "Ana Surucu"))}</span>
-                            <span class="summary-stat-value">{clean_text(scores['dominant_driver'])}</span>
-                        </div>
-                        <div class="summary-stat">
-                            <span class="summary-stat-label">{clean_text(bi_label("Weakest Link", "En Zayif Halka"))}</span>
-                            <span class="summary-stat-value">{clean_text(scores['weakest_driver'])}</span>
+                            <span class="summary-stat-label">Confidence</span>
+                            <span class="summary-stat-value">{scores['confidence']}/100 | {clean_text(scores['confidence_label'])}</span>
                         </div>
                     </div>
                     <div class="contribution-list">{contribution_html}</div>
@@ -2436,9 +2436,9 @@ def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[d
             score_label=factor["confidence_label"],
             chips=[factor["state"], f"Weight {factor['weight_pct']}%", delta_text, factor["primary_risk"]],
             context_rows=[
-                (bi_label("Driver", "Surucu"), factor["primary_support"]),
-                (bi_label("Weakest", "Zayif"), factor["primary_risk"]),
-                (bi_label("Confidence", "Guven"), factor["confidence_label"]),
+                ("Driver", factor["primary_support"]),
+                ("Weakest", factor["primary_risk"]),
+                ("Confidence", factor["confidence_label"]),
             ],
         )
     with deck_cols[1]:
@@ -2457,9 +2457,9 @@ def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[d
             score_label=factor["confidence_label"],
             chips=[factor["state"], f"Weight {factor['weight_pct']}%", delta_text, factor["primary_risk"]],
             context_rows=[
-                (bi_label("Crowding", "Yogunluk"), factor["state"]),
-                (bi_label("Driver", "Surucu"), factor["primary_support"]),
-                (bi_label("Weakest", "Zayif"), factor["primary_risk"]),
+                ("Crowding", factor["state"]),
+                ("Driver", factor["primary_support"]),
+                ("Weakest", factor["primary_risk"]),
             ],
             emphasis=positioning_band,
             emphasis_kind=positioning_band_kind,
@@ -2480,9 +2480,9 @@ def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[d
             score_label=factor["confidence_label"],
             chips=[factor["state"], f"Weight {factor['weight_pct']}%", delta_text, factor["primary_risk"]],
             context_rows=[
-                (bi_label("Macro Weight", "Agirlik"), "45%"),
-                (bi_label("Crypto Weight", "Agirlik"), "55%"),
-                (bi_label("Alignment", "Uyum"), participation_alignment_label(macro_breadth["score"], crypto_breadth["score"])),
+                ("Macro Weight", "45%"),
+                ("Crypto Weight", "55%"),
+                ("Alignment", participation_alignment_label(macro_breadth["score"], crypto_breadth["score"])),
             ],
             emphasis="Composite skor macro ve crypto katilimin birlikte teyit verip vermedigini olcer; gap buyurse rejim daha kirilgan okunur.",
             emphasis_kind="warn" if participation_gap > 12 else "ok",
@@ -2585,9 +2585,9 @@ def render_flow_risk_tab(data: dict, health_summary: dict):
             score_label=factor["confidence_label"],
             chips=[delta_text, factor["primary_risk"], f"Weight {factor['weight_pct']}%"],
             context_rows=[
-                (bi_label("Crowding", "Yogunluk"), factor["state"]),
-                (bi_label("Driver", "Surucu"), factor["primary_support"]),
-                (bi_label("Weakest", "Zayif"), factor["primary_risk"]),
+                ("Crowding", factor["state"]),
+                ("Driver", factor["primary_support"]),
+                ("Weakest", factor["primary_risk"]),
             ],
             emphasis=positioning_band,
             emphasis_kind=positioning_band_kind,
@@ -2604,9 +2604,9 @@ def render_flow_risk_tab(data: dict, health_summary: dict):
             score_label=factor["confidence_label"],
             chips=[delta_text, factor["primary_risk"], f"Weight {factor['weight_pct']}%"],
             context_rows=[
-                (bi_label("Driver", "Surucu"), factor["primary_support"]),
-                (bi_label("Weakest", "Zayif"), factor["primary_risk"]),
-                (bi_label("Confidence", "Guven"), factor["confidence_label"]),
+                ("Driver", factor["primary_support"]),
+                ("Weakest", factor["primary_risk"]),
+                ("Confidence", factor["confidence_label"]),
             ],
         )
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
@@ -2650,9 +2650,9 @@ def render_flow_risk_tab(data: dict, health_summary: dict):
         score_label=participation["confidence_label"],
         chips=[f"Weight {participation['weight_pct']}%", participation["primary_risk"], score_delta_meta(participation["delta_7d"])[0]],
         context_rows=[
-            (bi_label("Macro Weight", "Agirlik"), "45%"),
-            (bi_label("Crypto Weight", "Agirlik"), "55%"),
-            (bi_label("Alignment", "Uyum"), participation_alignment_label(macro_breadth["score"], crypto_breadth["score"])),
+            ("Macro Weight", "45%"),
+            ("Crypto Weight", "55%"),
+            ("Alignment", participation_alignment_label(macro_breadth["score"], crypto_breadth["score"])),
         ],
         emphasis="Composite katilim macro ve crypto breadth'i ayni karar cümlesinde toplar; ayrisma buyurse execution daha secici kalmali.",
         emphasis_kind="warn" if participation_gap > 12 else "ok",
