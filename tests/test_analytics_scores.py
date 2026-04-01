@@ -31,7 +31,8 @@ def test_build_regime_scores_returns_factor_model_and_fragility_overlay():
     assert scores["fragility"]["score"] >= 45
     assert scores["overlay"] in {"Constructive but Fragile", "Risk-On but Crowded"}
     assert len(scores["factors"]) == 4
-    assert scores["dominant_driver"] in {"Liquidity", "Volatility", "Positioning", "Breadth"}
+    assert scores["dominant_driver"] in {"Liquidity", "Volatility", "Positioning", "Composite Participation"}
+    assert "participation" in scores
 
 
 def test_build_regime_scores_returns_defensive_state_in_risk_off_setup():
@@ -64,4 +65,4 @@ def test_build_regime_scores_returns_defensive_state_in_risk_off_setup():
     assert scores["fragility"]["score"] >= 60
     assert scores["regime_band"] in {"Panic / Risk-Off", "Defensive"}
     assert scores["subscores"]["Liquidity"] < 50
-    assert scores["subscores"]["Breadth"] < 50
+    assert scores["subscores"]["Participation"] < 50
