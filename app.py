@@ -1618,6 +1618,18 @@ DATA_ATLAS_SECTIONS = [
     {"title": "Forex", "rows": [("EUR/USD", "EURUSD"), ("GBP/USD", "GBPUSD"), ("USD/JPY", "USDJPY"), ("USD/TRY", "USDTRY"), ("USD/CHF", "USDCHF"), ("AUD/USD", "AUDUSD")]},
 ]
 
+CRYPTO_RADAR_ASSETS = [
+    ("Bitcoin", "BTC", "BTC_P", "BTC_C", "BTC_7D"),
+    ("Ethereum", "ETH", "ETH_P", "ETH_C", "ETH_7D"),
+    ("Solana", "SOL", "SOL_P", "SOL_C", "SOL_7D"),
+    ("BNB Chain", "BNB", "BNB_P", "BNB_C", "BNB_7D"),
+    ("Ripple", "XRP", "XRP_P", "XRP_C", "XRP_7D"),
+    ("Cardano", "ADA", "ADA_P", "ADA_C", "ADA_7D"),
+    ("Avalanche", "AVAX", "AVAX_P", "AVAX_C", "AVAX_7D"),
+    ("Polkadot", "DOT", "DOT_P", "DOT_C", "DOT_7D"),
+    ("Chainlink", "LINK", "LINK_P", "LINK_C", "LINK_7D"),
+]
+
 DERIVATIVE_SOURCE_NAMES = [
     "Derivatives Pipeline",
     "OKX Funding",
@@ -2555,6 +2567,29 @@ def render_macro_tab(data: dict):
     render_table_row(data, MACRO_MARKET_SECTIONS[8:], 1)
 
 
+def render_crypto_tab(data: dict):
+    st.markdown(f"<div class='table-section-title'>{clean_text(bi_label('Crypto', 'Kripto'))}</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='table-section-copy'>BTC ve ana altcoinleri ayni radar icinde topladim; ustte fiyat ve 24s akis, altta ise 7 gunluk goreli performans okunuyor.</div>",
+        unsafe_allow_html=True,
+    )
+
+    price_cards = [
+        (f"{name} ({symbol})", data.get(price_key, "-"), data.get(change_key, "-"))
+        for name, symbol, price_key, change_key, _ in CRYPTO_RADAR_ASSETS
+    ]
+    weekly_cards = [
+        (f"{symbol} 7D", data.get(week_key, "-"))
+        for _, symbol, _, _, week_key in CRYPTO_RADAR_ASSETS
+    ]
+
+    cat(bi_label("Crypto Radar", "Kripto Radari"), "●")
+    render_cards(price_cards, cols=4)
+    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+    cat(bi_label("7D Performance", "7 Gunluk Gorunum"), "◨")
+    render_cards(weekly_cards, cols=4)
+
+
 def render_flow_risk_tab(data: dict, health_summary: dict):
     st.markdown(f"<div class='table-section-title'>{clean_text(bi_label('Flow and Risk Surfaces', 'Akis ve Risk Katmanlari'))}</div>", unsafe_allow_html=True)
     st.markdown(
@@ -2762,16 +2797,18 @@ render_health_alerts(health_summary)
 render_sidebar(data, brief, last_updated, health_summary, preferences, alerts)
 render_control_rail(data, brief, last_updated, health_summary, alerts)
 
-tabs = st.tabs(["Terminal", "Macro", "Flow", "Reports", "Atlas"])
+tabs = st.tabs(["Terminal", "Macro", "Crypto", "Flow", "Reports", "Atlas"])
 with tabs[0]:
     render_overview_tab(data, brief, analytics, alerts, health_summary)
 with tabs[1]:
     render_macro_tab(data)
 with tabs[2]:
-    render_flow_risk_tab(data, health_summary)
+    render_crypto_tab(data)
 with tabs[3]:
+    render_flow_risk_tab(data, health_summary)
+with tabs[4]:
     render_report_tab(
         client, data, brief, analytics, alerts, health_summary, preferences.get("report_depth", "Orta")
     )
-with tabs[4]:
+with tabs[5]:
     render_all_metrics_tab(data)
