@@ -131,7 +131,6 @@ def _extract_tagged_section(text, tag: str) -> str:
 
 
 def _fallback_x_lead(data: dict, analytics: dict) -> str:
-    scores = analytics.get("scores", {})
     return (
         f"Makro Bulten | BTC {_safe(data.get('BTC_P'))}, 24s {_safe(data.get('BTC_C'))}. "
         f"DXY {_safe(data.get('DXY'))}, US10Y {_safe(data.get('US10Y'))}, VIX {_safe(data.get('VIX'))}; "
