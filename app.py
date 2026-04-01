@@ -2443,11 +2443,6 @@ def _normalize_bulten_result(result, data: dict, analytics: dict) -> dict:
 
 def _call_strategy_report(client, data: dict, brief: dict, analytics: dict, alerts: list[dict], health_summary: dict, report_depth: str):
     try:
-        params = inspect.signature(generate_strategy_report).parameters
-    except (TypeError, ValueError):
-        params = {}
-
-    if {"brief", "analytics", "alerts", "health_summary"}.issubset(params):
         return generate_strategy_report(
             client,
             data,
@@ -2457,8 +2452,8 @@ def _call_strategy_report(client, data: dict, brief: dict, analytics: dict, aler
             health_summary,
             depth=report_depth,
         )
-
-    return generate_strategy_report(client, data, depth=report_depth)
+    except TypeError:
+        return generate_strategy_report(client, data, depth=report_depth)
 
 
 def render_ai_report(client, data: dict, brief: dict, analytics: dict, alerts: list[dict], health_summary: dict, report_depth: str):
@@ -2476,7 +2471,7 @@ def render_ai_report(client, data: dict, brief: dict, analytics: dict, alerts: l
                 st.session_state["macro_bulten_report"] = _normalize_bulten_result(report, data, analytics)
             except TypeError:
                 st.session_state["macro_bulten_report"] = _fallback_bulten_payload(data, analytics)
-                st.warning("Model yaniti beklenmeyen formatta geldi; fallback bulten gosteriliyor.")
+                st.warning("AI servis sozlesmesi uyumsuz veya yanit formati beklenmeyen durumda; fallback bulten gosteriliyor.")
             except (APIConnectionError, APITimeoutError, RateLimitError, APIError, ValueError) as exc:
                 st.error(f"AI hatasi: {exc}")
                 return
