@@ -3,16 +3,16 @@ import pandas as pd
 
 DEPTH_RULES = {
     "Kisa": {
-        "terminal_length": "250-350 kelime",
-        "style": "Kisa, net, yogun ve karar odakli yaz.",
+        "terminal_length": "350-500 kelime",
+        "style": "Kisa ama research-note tonunda, net ve karar odakli yaz.",
     },
     "Orta": {
-        "terminal_length": "400-600 kelime",
-        "style": "Dengeli derinlikte, sayisal ve uygulanabilir yaz.",
+        "terminal_length": "550-800 kelime",
+        "style": "Research note tonunda, sayisal, editoryal ve uygulanabilir yaz.",
     },
     "Derin": {
-        "terminal_length": "650-900 kelime",
-        "style": "Detayli ama tekrar etmeyen, tetikleyici seviyeleri net veren bir bulten yaz.",
+        "terminal_length": "800-1100 kelime",
+        "style": "Detayli ama tekrar etmeyen, bolum disiplini guclu bir research note yaz.",
     },
 }
 
@@ -28,7 +28,7 @@ def _format_news(news: list[dict]) -> str:
         return "- Haber akisi su an yok"
     return "\n".join(
         f"- {_safe(item.get('title'))} | {_safe(item.get('source'))} | {_safe(item.get('time'))}"
-        for item in news[:6]
+        for item in news[:3]
     )
 
 
@@ -66,7 +66,7 @@ def _format_calendar(calendar_events: list[dict]) -> str:
             f"{_safe(event.get('impact'))} | {_safe(event.get('title'))} | "
             f"A:{_safe(event.get('actual'))} F:{_safe(event.get('forecast'))} P:{_safe(event.get('previous'))}"
         )
-        for event in calendar_events[:5]
+        for event in calendar_events[:3]
     )
 
 
@@ -127,40 +127,50 @@ def build_strategy_report_prompt(
 
     return f"""
 Sen SA Finance Alpha Terminal icin gunluk Makro Bulten hazirlayan ust duzey bir makro-kripto stratejistsin.
-Turkce yaz. Cikti profesyonel, kisa, sayisal ve paylasilabilir olsun.
+Turkce yaz. Cikti profesyonel, research-note tonunda, sayisal ve paylasilabilir olsun.
 
 Ana amac:
 - Terminal icin karar destek bulteni yazmak
 - X hesabinda paylasilabilecek ozet paketini birlikte vermek
+- Anlatiyi editoryal ama disiplinli tutmak; rapor genel yorum gibi degil, gunluk strateji notu gibi okunmali
 
 Stil:
 - {rules['style']}
 - Terminal raporu uzunlugu: {rules['terminal_length']}
 - Tekrara dusme
 - Her ana bolumde neden onemli oldugunu tek cumleyle bagla
-- Genel laflar yerine esik, trigger, invalidate ve davranis cümlesi ver
+- Genel laflar yerine esik, trigger, invalidate ve davranis cumlesi ver
 - Gereksiz yasal uyari ekleme
-- Haberleri tek basina anlatma; rejime etkisi üzerinden kullan
+- Haberleri tek basina anlatma; rejime etkisi uzerinden kullan
 - Markdown tablo kullanma
+- Her ana bolum 1 kisa paragraf ve gerekirse 2-4 kisa madde icersin
+- Ayni metriği birden fazla bolumde uzun uzun tekrar etme
+- "Long / Short / Bekle" bolumunde net davranis kosullari ver
+- "Ekonomik Takvim" bolumunde en fazla 3 olay yaz
+- "Onemli Haberler" bolumunde en fazla 3 haber yaz
 
 Zorunlu cikti formati:
 <terminal_report>
-### Bugunun Ozeti
-### Rejim ve Bias
-### Makro Suruculer
-### Kripto Ic Gorunum
-### Takvim ve Katalizorler
-### Seviyeler ve Invalidation
-### Bugun Ne Izlenmeli?
+### SA Finance Alpha Makro Bulteni Giris
+### Gunluk Harita ve Ana Cikarim
+### Makro Ortam ve Risk Istahi
+### BTC, Turev ve Order Book Analizi
+### ETF, Stablecoin ve Altcoinler
+### Macro Breadth ve Crypto Breadth
+### Ekonomik Takvim ve Olasi Etkiler
+### Onemli Haberler ve Piyasa Yorumu
+### Long / Short / Bekle ve Kritik Riskler
+### Kritik Seviyeler, Invalidation ve Bugun Ne Izlenmeli
 </terminal_report>
 <x_lead>
-Tek postluk acilis metni. 280 karakteri gecmesin.
+Tek postluk acilis metni. 280 karakteri gecmesin. Pazarlama dili kullanma; sabah notu gibi yaz.
 </x_lead>
 <x_thread>
-1/4 ...
-2/4 ...
-3/4 ...
-4/4 ...
+1/5 ...
+2/5 ...
+3/5 ...
+4/5 ...
+5/5 ...
 </x_thread>
 
 Canli baglam ({now_text}):
@@ -220,7 +230,9 @@ Kaynak: {_safe(data.get('ECONOMIC_CALENDAR_SOURCE'))}
 
 Ek kurallar:
 - X lead ve X thread, terminal raporunun kisa yansimasi olmali; yeni hikaye uydurma.
-- X thread 4 madde olmali ve her madde tek paragraf olmali.
+- X thread 5 madde olmali ve her madde tek paragraf olmali.
 - Terminal raporunda kritik seviyeleri dolar veya yuzde ile mutlaka yaz.
 - Invalidation bolumunde ne olursa gorusun bozulacagini net soyle.
+- "Gunluk Harita ve Ana Cikarim" bolumunde rejim, dominant driver, weakest link ve gunun temel davranis cizgisi ilk 5-6 satirda verilmis olsun.
+- "Long / Short / Bekle ve Kritik Riskler" bolumunde su uc kalip zorunlu: long icin anlamli kosul, short icin anlamli kosul, beklemek icin anlamli kosul.
 """
