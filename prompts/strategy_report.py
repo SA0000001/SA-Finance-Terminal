@@ -148,6 +148,9 @@ Stil:
 - "Long / Short / Bekle" bolumunde net davranis kosullari ver
 - "Ekonomik Takvim" bolumunde en fazla 3 olay yaz
 - "Onemli Haberler" bolumunde en fazla 3 haber yaz
+- Ic analitik etiketleri rapora aynen kopyalama. "Fragile confidence", "Mixed overlay", "Neutral/Mixed" gibi ifadeleri dogrudan tekrar etme; bunlari dogal piyasa diliyle cevir.
+- Her ana bolumde siralama su olsun: veri -> yorum -> neden onemli.
+- Skorlar destekleyici baglamdir; ana cumle skoru degil, piyasayi anlatsin.
 
 Zorunlu cikti formati:
 <terminal_report>
@@ -195,44 +198,77 @@ Canli baglam ({now_text}):
 - Macro breadth: {_safe(macro_breadth.get('score'))}/100 | {_safe(macro_breadth.get('state'))}
 - Crypto breadth: {_safe(crypto_breadth.get('score'))}/100 | {_safe(crypto_breadth.get('state'))}
 
-4) Piyasa ve execution verileri
+4) Makro ve cross-asset veri seti
+- SP500: {_safe(data.get('SP500'))} | 24s {_safe(data.get('SP500_C'))}
+- NASDAQ: {_safe(data.get('NASDAQ'))} | 24s {_safe(data.get('NASDAQ_C'))}
+- DAX: {_safe(data.get('DAX'))} | 24s {_safe(data.get('DAX_C'))}
+- NIKKEI: {_safe(data.get('NIKKEI'))} | 24s {_safe(data.get('NIKKEI_C'))}
+- VIX: {_safe(data.get('VIX'))} | 24s {_safe(data.get('VIX_C'))}
+- DXY: {_safe(data.get('DXY'))} | 24s {_safe(data.get('DXY_C'))}
+- US10Y: {_safe(data.get('US10Y'))} | 24s {_safe(data.get('US10Y_C'))}
+- FED: {_safe(data.get('FED'))}
+- GOLD: {_safe(data.get('GOLD'))} | 24s {_safe(data.get('GOLD_C'))}
+- SILVER: {_safe(data.get('SILVER'))} | 24s {_safe(data.get('SILVER_C'))}
+- OIL: {_safe(data.get('OIL'))} | 24s {_safe(data.get('OIL_C'))}
+
+5) BTC, turev ve execution verileri
 - BTC: {_safe(data.get('BTC_P'))} | 24s {_safe(data.get('BTC_C'))} | 7g {_safe(data.get('BTC_7D'))}
-- Funding: {_safe(data.get('FR'))} | OI: {_safe(data.get('OI'))} | L/S: {_safe(data.get('LS_Ratio'))} | Taker: {_safe(data.get('Taker'))}
+- BTC dominance: {_safe(data.get('Dom'))} | ETH dominance: {_safe(data.get('ETH_Dom'))}
+- Funding: {_safe(data.get('FR'))} | OI: {_safe(data.get('OI'))} | L/S: {_safe(data.get('LS_Ratio'))} | Long %: {_safe(data.get('Long_Pct'))} | Short %: {_safe(data.get('Short_Pct'))} | Taker: {_safe(data.get('Taker'))}
 - ETF netflow: {_safe(data.get('ETF_FLOW_TOTAL'))} | Tarih: {_safe(data.get('ETF_FLOW_DATE'))} | Kaynak: {_safe(data.get('ETF_FLOW_SOURCE'))}
-- DXY: {_safe(data.get('DXY'))} | US10Y: {_safe(data.get('US10Y'))} | VIX: {_safe(data.get('VIX'))} | FED: {_safe(data.get('FED'))}
-- USDT.D: {_safe(data.get('USDT_D'))} | Stable.C.D: {_safe(data.get('STABLE_C_D'))}
 - Order book signal: {_safe(data.get('ORDERBOOK_SIGNAL'))}
 - Order book detail: {_safe(data.get('ORDERBOOK_SIGNAL_DETAIL'))}
+- Order book sources: {_safe(data.get('ORDERBOOK_SOURCES'))}
 - Support: {_safe(data.get('Sup_Wall'))} | Resistance: {_safe(data.get('Res_Wall'))}
 
-5) Brief yorumu
+6) Stablecoin, breadth ve altcoin veri seti
+- Total stable: {_safe(data.get('Total_Stable'))} | USDT: {_safe(data.get('USDT_MCap'))} | USDC: {_safe(data.get('USDC_MCap'))} | DAI: {_safe(data.get('DAI_MCap'))}
+- Stable.C.D: {_safe(data.get('STABLE_C_D'))} | USDT.D: {_safe(data.get('USDT_D'))} | USDT Dom Stable: {_safe(data.get('USDT_Dom_Stable'))}
+- TOTAL: {_safe(data.get('TOTAL_CAP'))} | TOTAL2: {_safe(data.get('TOTAL2_CAP'))} | TOTAL3: {_safe(data.get('TOTAL3_CAP'))} | OTHERS: {_safe(data.get('OTHERS_CAP'))}
+- ETH: {_safe(data.get('ETH_P'))} | 24s {_safe(data.get('ETH_C'))} | 7g {_safe(data.get('ETH_7D'))}
+- SOL: {_safe(data.get('SOL_P'))} | 24s {_safe(data.get('SOL_C'))} | 7g {_safe(data.get('SOL_7D'))}
+- BNB: {_safe(data.get('BNB_P'))} | 24s {_safe(data.get('BNB_C'))} | 7g {_safe(data.get('BNB_7D'))}
+- XRP: {_safe(data.get('XRP_P'))} | 24s {_safe(data.get('XRP_C'))} | 7g {_safe(data.get('XRP_7D'))}
+- ADA: {_safe(data.get('ADA_P'))} | 24s {_safe(data.get('ADA_C'))} | 7g {_safe(data.get('ADA_7D'))}
+- AVAX: {_safe(data.get('AVAX_P'))} | 24s {_safe(data.get('AVAX_C'))} | 7g {_safe(data.get('AVAX_7D'))}
+- DOT: {_safe(data.get('DOT_P'))} | 24s {_safe(data.get('DOT_C'))} | 7g {_safe(data.get('DOT_7D'))}
+- LINK: {_safe(data.get('LINK_P'))} | 24s {_safe(data.get('LINK_C'))} | 7g {_safe(data.get('LINK_7D'))}
+
+7) Brief yorumu
 {_format_brief(brief)}
 
-6) Invalidate ve watch next
+8) Invalidate ve watch next
 {chr(10).join(f"- {item}" for item in scores.get('invalidate_conditions', [])) or '- Invalidate verisi yok'}
 {chr(10).join(f"- watch: {item}" for item in scores.get('watch_next', [])) or '- Watch list yok'}
 
-7) Senaryolar
+9) Senaryolar
 {_format_scenarios(analytics)}
 
-8) Alarmlar
+10) Alarmlar
 {_format_alerts(alerts)}
 
-9) Haberler
+11) Haberler
 {_format_news(data.get('NEWS', []))}
 
-10) Ekonomik takvim
+12) Ekonomik takvim
 Kaynak: {_safe(data.get('ECONOMIC_CALENDAR_SOURCE'))}
 {_format_calendar(data.get('ECONOMIC_CALENDAR', []))}
 
-11) Veri sagligi
+13) Veri sagligi
 {_format_health(health_summary)}
 
 Ek kurallar:
 - X lead ve X thread, terminal raporunun kisa yansimasi olmali; yeni hikaye uydurma.
 - X thread 5 madde olmali ve her madde tek paragraf olmali.
+- X thread maddeleri su akisa bagli olsun: rejim, makro, BTC+turev, ETF/stablecoin/altcoin+breadth, seviyeler+invalidate.
+- X thread ve x lead icinde pazarlama dili, slogan veya promosyon kullanma.
+- X thread'in her maddesinde en az bir sayi, oran veya kritik seviye bulunsun.
 - Terminal raporunda kritik seviyeleri dolar veya yuzde ile mutlaka yaz.
 - Invalidation bolumunde ne olursa gorusun bozulacagini net soyle.
 - "Gunluk Harita ve Ana Cikarim" bolumunde rejim, dominant driver, weakest link ve gunun temel davranis cizgisi ilk 5-6 satirda verilmis olsun.
 - "Long / Short / Bekle ve Kritik Riskler" bolumunde su uc kalip zorunlu: long icin anlamli kosul, short icin anlamli kosul, beklemek icin anlamli kosul.
+- "Makro Ortam ve Risk Istahi" bolumunde DXY, US10Y, VIX, SP500, NASDAQ ve mumkunse DAX, NIKKEI, GOLD, SILVER, OIL verilerini somut sayilarla kullan.
+- "BTC, Turev ve Order Book Analizi" bolumunde BTC 24s ve 7g hareketini, funding/OI/L-S/Taker verileriyle birlestir; kaldirac yogunlugu ve squeeze riskine yorum getir.
+- "ETF, Stablecoin ve Altcoinler" bolumunde ETF akisi, stablecoin buyuklugu ve altcoinlerin 24s/7g performansini BTC ile goreli kiyaslayarak yaz.
+- "Macro Breadth ve Crypto Breadth" bolumunde skor tekrari yapmak yerine katilimin genis mi dar mi oldugunu, BTC disina yayilim olup olmadigini ve uyum/ayrisma durumunu anlat.
 """
