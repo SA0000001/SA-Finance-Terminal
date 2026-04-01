@@ -24,6 +24,20 @@ def test_build_regime_scores_returns_factor_model_and_fragility_overlay():
             "TOTAL3_CAP": "$0.92T",
             "OTHERS_CAP": "$210.0B",
             "Dom": "%54.20",
+            "SPY_C": "2.60%",
+            "RSP_C": "2.10%",
+            "IWM_C": "1.80%",
+            "QQQ_C": "3.20%",
+            "XLK_C": "3.00%",
+            "XLF_C": "2.10%",
+            "XLI_C": "1.50%",
+            "XLE_C": "0.80%",
+            "XLY_C": "2.40%",
+            "SP500_C": "2.82%",
+            "NASDAQ_C": "3.75%",
+            "DAX_C": "0.52%",
+            "FTSE_C": "0.40%",
+            "NIKKEI_C": "1.20%",
         }
     )
 
