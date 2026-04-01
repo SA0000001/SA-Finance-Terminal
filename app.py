@@ -1,5 +1,4 @@
 import html
-import inspect
 import os
 
 import pandas as pd
@@ -451,7 +450,30 @@ html, body, [data-testid="stAppViewContainer"] {
     color: var(--text-soft);
     font-size: 0.96rem;
     line-height: 1.75;
-    white-space: pre-wrap;
+}
+
+.report-section-title {
+    color: var(--text);
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin: 18px 0 8px;
+}
+
+.report-line {
+    color: var(--text-soft);
+    font-size: 0.94rem;
+    line-height: 1.72;
+    margin: 0 0 7px;
+}
+
+.report-line.thread-line {
+    color: var(--text);
+    font-weight: 500;
+}
+
+.report-spacer {
+    height: 8px;
 }
 
 .x-post {
@@ -2381,8 +2403,25 @@ def render_downloads(data: dict, brief: dict, analytics: dict, alerts: list[dict
     )
 
 
+def _format_report_body_html(body: str) -> str:
+    lines = str(body or "Veri bekleniyor").splitlines()
+    parts = []
+    for raw_line in lines:
+        line = raw_line.strip()
+        if not line:
+            parts.append('<div class="report-spacer"></div>')
+            continue
+        safe_line = html.escape(line)
+        if line.startswith("### "):
+            parts.append(f'<div class="report-section-title">{html.escape(line[4:].strip())}</div>')
+        else:
+            extra_class = " thread-line" if "/" in line[:4] else ""
+            parts.append(f'<div class="report-line{extra_class}">{safe_line}</div>')
+    return "".join(parts)
+
+
 def render_report_panel(kicker: str, title: str, body: str):
-    safe_body = html.escape(body or "Veri bekleniyor")
+    safe_body = _format_report_body_html(body)
     st.markdown(
         f"""
         <div class="report-box">
@@ -2397,29 +2436,54 @@ def render_report_panel(kicker: str, title: str, body: str):
 
 def _fallback_bulten_payload(data: dict, analytics: dict, terminal_report: str = "") -> dict:
     scores = analytics.get("scores", {})
+    participation = scores.get("participation", {})
+    macro_breadth = participation.get("subfactors", {}).get("macro", {})
+    crypto_breadth = participation.get("subfactors", {}).get("crypto", {})
     fallback_terminal = terminal_report or "\n".join(
         [
-            "### Bugunun Ozeti",
-            f"BTC {display_value(data.get('BTC_P', '-'))} seviyesinde. Rejim {scores.get('overall', '-')}/100 ve {clean_text(scores.get('overlay', '-'))}.",
+            "### SA Finance Alpha Makro Bulteni Giris",
+            f"BTC {display_value(data.get('BTC_P', '-'))} seviyesinde; rejim {scores.get('overall', '-')}/100 ve {clean_text(scores.get('overlay', '-'))}. Bu not, makro risk istahi ile kripto internallerini birlikte okur.",
             "",
-            "### Rejim ve Bias",
-            f"{clean_text(scores.get('bias', 'Mevcut bias verisi bekleniyor.'))}",
+            "### Gunluk Harita ve Ana Cikarim",
+            f"Dominant driver {clean_text(scores.get('dominant_driver', '-'))}, weakest link {clean_text(scores.get('weakest_driver', '-'))}. Gunun davranis cizgisi: {clean_text(scores.get('bias', 'Mevcut bias verisi bekleniyor.'))}",
             "",
-            "### Seviyeler ve Invalidation",
-            f"Destek {display_value(data.get('Sup_Wall', '-'))}, direnc {display_value(data.get('Res_Wall', '-'))}.",
+            "### Makro Ortam ve Risk Istahi",
+            f"DXY {display_value(data.get('DXY', '-'))}, US10Y {display_value(data.get('US10Y', '-'))}, VIX {display_value(data.get('VIX', '-'))}, ETF {display_value(data.get('ETF_FLOW_TOTAL', '-'))}.",
+            "",
+            "### BTC, Turev ve Order Book Analizi",
+            f"Funding {display_value(data.get('FR', '-'))}, OI {display_value(data.get('OI', '-'))}, L/S {display_value(data.get('LS_Ratio', '-'))}, Taker {display_value(data.get('Taker', '-'))}. Order book: {clean_text(data.get('ORDERBOOK_SIGNAL', '-'))}.",
+            "",
+            "### ETF, Stablecoin ve Altcoinler",
+            f"ETF akisi {display_value(data.get('ETF_FLOW_TOTAL', '-'))}, USDT.D {display_value(data.get('USDT_D', '-'))}, Stable.C.D {display_value(data.get('STABLE_C_D', '-'))}.",
+            "",
+            "### Macro Breadth ve Crypto Breadth",
+            f"Macro breadth {display_value(macro_breadth.get('score', '-'))}/100, crypto breadth {display_value(crypto_breadth.get('score', '-'))}/100, composite participation {display_value(participation.get('score', '-'))}/100.",
+            "",
+            "### Ekonomik Takvim ve Olasi Etkiler",
+            f"Takvim kaynagi {clean_text(data.get('ECONOMIC_CALENDAR_SOURCE', '-'))}; yakin veri seti oynakligi DXY ve VIX uzerinden etkileyebilir.",
+            "",
+            "### Onemli Haberler ve Piyasa Yorumu",
+            f"Ana haber akisi {clean_text(data.get('NEWS', [{}])[0].get('title') if data.get('NEWS') else '-')}.",
+            "",
+            "### Long / Short / Bekle ve Kritik Riskler",
+            "Long destekler korunursa, short vol ve weakest link bozulursa, bekle ise invalidate seviyeleri fiyatin ustune gelirse daha temizdir.",
+            "",
+            "### Kritik Seviyeler, Invalidation ve Bugun Ne Izlenmeli",
+            f"Destek {display_value(data.get('Sup_Wall', '-'))}, direnc {display_value(data.get('Res_Wall', '-'))}. Invalidate: {clean_text(' | '.join(scores.get('invalidate_conditions', [])[:2]) or '-')}.",
         ]
     )
     lead = (
-        f"Makro Bulten: BTC {display_value(data.get('BTC_P', '-'))}, rejim {scores.get('overall', '-')}/100 "
-        f"({clean_text(scores.get('overlay', '-'))}). ETF {display_value(data.get('ETF_FLOW_TOTAL', '-'))}, "
-        f"DXY {display_value(data.get('DXY', '-'))}, VIX {display_value(data.get('VIX', '-'))} izlenmeli."
+        f"Makro Bulten | BTC {display_value(data.get('BTC_P', '-'))}, rejim {scores.get('overall', '-')}/100 "
+        f"({clean_text(scores.get('overlay', '-'))}). Ana konu {clean_text(scores.get('dominant_driver', '-'))}, "
+        f"zayif halka {clean_text(scores.get('weakest_driver', '-'))}. ETF, DXY ve VIX bugunun ana tetikleyicileri."
     )[:280]
     thread = "\n".join(
         [
-            f"1/4 Rejim {scores.get('overall', '-')}/100 ve etiket {clean_text(scores.get('overlay', '-'))}.",
-            f"2/4 Makro: DXY {display_value(data.get('DXY', '-'))}, US10Y {display_value(data.get('US10Y', '-'))}, VIX {display_value(data.get('VIX', '-'))}.",
-            f"3/4 Kripto internalleri: funding {display_value(data.get('FR', '-'))}, OI {display_value(data.get('OI', '-'))}, L/S {display_value(data.get('LS_Ratio', '-'))}, Taker {display_value(data.get('Taker', '-'))}.",
-            f"4/4 Seviyeler: destek {display_value(data.get('Sup_Wall', '-'))}, direnc {display_value(data.get('Res_Wall', '-'))}.",
+            f"1/5 Rejim {scores.get('overall', '-')}/100 ve etiket {clean_text(scores.get('overlay', '-'))}. Ana cikarim {clean_text(scores.get('summary', '-'))}.",
+            f"2/5 Makro: DXY {display_value(data.get('DXY', '-'))}, US10Y {display_value(data.get('US10Y', '-'))}, VIX {display_value(data.get('VIX', '-'))}, ETF {display_value(data.get('ETF_FLOW_TOTAL', '-'))}.",
+            f"3/5 BTC ve turev: funding {display_value(data.get('FR', '-'))}, OI {display_value(data.get('OI', '-'))}, L/S {display_value(data.get('LS_Ratio', '-'))}, Taker {display_value(data.get('Taker', '-'))}.",
+            f"4/5 Breadth ve akis: macro {display_value(macro_breadth.get('score', '-'))}/100, crypto {display_value(crypto_breadth.get('score', '-'))}/100, composite {display_value(participation.get('score', '-'))}/100.",
+            f"5/5 Seviyeler: destek {display_value(data.get('Sup_Wall', '-'))}, direnc {display_value(data.get('Res_Wall', '-'))}. Invalidate {clean_text(' | '.join(scores.get('invalidate_conditions', [])[:1]) or '-')}.",
         ]
     )
     return {
@@ -2458,7 +2522,7 @@ def _call_strategy_report(client, data: dict, brief: dict, analytics: dict, aler
 
 def render_ai_report(client, data: dict, brief: dict, analytics: dict, alerts: list[dict], health_summary: dict, report_depth: str):
     st.subheader("Makro Bulten")
-    st.caption(f"Derinlik: {report_depth} | Terminal raporu ve X paketi birlikte uretilir.")
+    st.caption(f"Derinlik: {report_depth} | Research note + X ozet paketi birlikte uretilir.")
     if not client:
         st.info("OPENROUTER_API_KEY yok. AI raporu pasif.")
         return
@@ -2487,7 +2551,7 @@ def render_ai_report(client, data: dict, brief: dict, analytics: dict, alerts: l
     with lead_col:
         render_report_panel("X Lead", "Tek Post Ozet", report.get("x_lead", ""))
     with thread_col:
-        render_report_panel("X Thread Draft", "4 Maddelik Taslak", report.get("x_thread", ""))
+        render_report_panel("X Thread", "5 Maddelik Taslak", report.get("x_thread", ""))
 
 
 def render_news_tab(data: dict):
