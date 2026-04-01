@@ -1,4 +1,4 @@
-from services.health import merge_source_health
+from services.health import build_health_summary, merge_source_health
 
 
 def test_merge_source_health_drops_inactive_fallback_sources():
@@ -67,3 +67,40 @@ def test_merge_source_health_keeps_last_success_for_current_failure():
 
     assert merged["OKX Funding"]["last_success_at"] == "2026-04-01T00:00:00+00:00"
     assert merged["OKX Funding"]["error"] == "HTTP error"
+
+
+def test_build_health_summary_redacts_sensitive_url_details():
+    health_state = {
+        "FRED FEDFUNDS": {
+            "source": "FRED FEDFUNDS",
+            "ok": False,
+            "latency_ms": 123.0,
+            "fetched_at": "2026-04-01T08:00:00+00:00",
+            "last_success_at": "2026-04-01T07:00:00+00:00",
+            "error": "HTTP error: 500 Server Error for url: https://api.stlouisfed.org/fred/series/observations?series_id=FEDFUNDS&api_key=supersecret&file_type=json",
+            "stale_after_seconds": 21600,
+        }
+    }
+
+    summary = build_health_summary(health_state)
+
+    assert summary["rows"][0]["Hata"] == "FRED gecici sunucu hatasi (500); son basarili veri korunuyor."
+    assert "supersecret" not in summary["rows"][0]["Hata"]
+
+
+def test_build_health_summary_maps_known_market_cap_parse_error_to_fallback_copy():
+    health_state = {
+        "TradingView Market Cap": {
+            "source": "TradingView Market Cap",
+            "ok": False,
+            "latency_ms": 80.0,
+            "fetched_at": "2026-04-01T08:00:00+00:00",
+            "last_success_at": "2026-04-01T07:00:00+00:00",
+            "error": "Parse error: tradingview market cap not found",
+            "stale_after_seconds": 300,
+        }
+    }
+
+    summary = build_health_summary(health_state)
+
+    assert summary["rows"][0]["Hata"] == "TradingView market cap metni parse edilemedi; CoinGecko fallback kullaniliyor."
