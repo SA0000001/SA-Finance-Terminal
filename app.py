@@ -20,6 +20,7 @@ from services.health import build_health_summary, merge_source_health
 from services.market_data import load_terminal_data
 from services.preferences import load_preferences, save_preferences
 from ui.components import (
+    bi_label,
     cat,
     clean_text,
     display_value,
@@ -540,6 +541,32 @@ html, body, [data-testid="stAppViewContainer"] {
     text-transform: uppercase;
 }
 
+.regime-cue-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.regime-cue {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.034);
+    border: 1px solid rgba(126, 158, 197, 0.12);
+    color: var(--text-soft);
+    font-size: 0.74rem;
+    line-height: 1.4;
+    font-family: var(--mono);
+}
+
+.regime-cue strong {
+    color: var(--text);
+    font-weight: 700;
+}
+
 .regime-main-score {
     margin-top: 18px;
     font-size: 4.1rem;
@@ -1025,6 +1052,17 @@ html, body, [data-testid="stAppViewContainer"] {
     padding: 18px;
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.15);
     height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.signal-deck::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(89, 212, 255, 0.28), transparent);
+    opacity: 0.9;
 }
 
 .signal-deck-top {
@@ -1067,6 +1105,35 @@ html, body, [data-testid="stAppViewContainer"] {
     margin-top: 10px;
 }
 
+.signal-deck-band {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(126, 158, 197, 0.12);
+    background: rgba(255, 255, 255, 0.028);
+    color: var(--text-soft);
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+
+.signal-band-risk {
+    border-color: rgba(255, 115, 132, 0.28);
+    background: rgba(255, 115, 132, 0.08);
+    color: #ffd4da;
+}
+
+.signal-band-warn {
+    border-color: rgba(241, 197, 108, 0.28);
+    background: rgba(241, 197, 108, 0.08);
+    color: #fde7b5;
+}
+
+.signal-band-ok {
+    border-color: rgba(56, 217, 150, 0.22);
+    background: rgba(56, 217, 150, 0.08);
+    color: #cff6e6;
+}
+
 .signal-chip-row {
     display: flex;
     gap: 8px;
@@ -1090,6 +1157,38 @@ html, body, [data-testid="stAppViewContainer"] {
     display: grid;
     gap: 10px;
     margin-top: 16px;
+}
+
+.signal-context-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.signal-context-item {
+    padding: 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(126, 158, 197, 0.09);
+}
+
+.signal-context-label {
+    display: block;
+    color: var(--muted);
+    font-size: 0.64rem;
+    font-family: var(--mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.signal-context-value {
+    display: block;
+    margin-top: 8px;
+    color: var(--text);
+    font-size: 0.84rem;
+    line-height: 1.45;
+    font-weight: 700;
 }
 
 .signal-mini-row {
@@ -1779,6 +1878,73 @@ def score_delta_meta(delta_7d: int) -> tuple[str, str]:
     return "7g 0", "delta-flat"
 
 
+def participation_alignment_label(macro_score: int, crypto_score: int) -> str:
+    gap = abs(macro_score - crypto_score)
+    if gap <= 8:
+        return "Aligned (Uyumlu)"
+    if gap <= 18:
+        return "Mixed (Ayrisik)"
+    return "Diverging (Ayrisiyor)"
+
+
+def breadth_quality_label(factor: dict) -> str:
+    score = factor["score"]
+    if score >= 72:
+        return "Broadening (Genisliyor)"
+    if score >= 58:
+        return "Supported (Destekli)"
+    if score >= 42:
+        return "Selective (Secici)"
+    return "Narrow (Dar)"
+
+
+def build_positioning_emphasis(factor: dict, brief: dict) -> tuple[str, str]:
+    crowded_titles = {"Longlar Kalabalik", "Short Baskisi"}
+    if factor["score"] <= 45 or brief["positioning"]["title"] in crowded_titles:
+        return (
+            "Crowding risk yuksek; yeni agresyon icin participation teyidi ve daha sakin taker akis gerekli.",
+            "risk",
+        )
+    if factor["score"] <= 60:
+        return (
+            "Akis secici ama kirilgan olabilir; funding ve L/S dengesinin hizla bozulmadigindan emin olmak gerekiyor.",
+            "warn",
+        )
+    return (
+        "Pozisyonlanma su an rejimi bozacak kadar tek tarafa yigilmiyor; akisin dengesi korunuyor.",
+        "ok",
+    )
+
+
+def build_execution_bridge(scores: dict, brief: dict) -> tuple[str, list[tuple[str, str]], str, str]:
+    overall = scores["overall"]
+    fragility = scores["fragility"]["score"]
+    participation = scores["participation"]["score"]
+    if overall >= 60 and fragility <= 55:
+        copy = "Bu rejimde destekten gelen teyitli devam hareketleri, gec kalinmis breakout kovalamaktan daha temiz bir davranis sunar."
+        rows = [
+            (bi_label("Preferred Behavior", "Tercih"), "Support-led continuation"),
+            (bi_label("Aggressive Only If", "Sart"), "Participation aligned and vol contained"),
+            (bi_label("Defensive While", "Temkin"), "Crowding or VIX keeps rising"),
+        ]
+        return copy, rows, brief["focus"]["badge"], "ok"
+    if fragility >= 65 or participation < 55:
+        copy = "Execution daha taktik olmali; seviyeler calissa bile participation ve crowding teyidi olmadan agresyon pahaliya mal olabilir."
+        rows = [
+            (bi_label("Preferred Behavior", "Tercih"), "Fade extremes, respect walls"),
+            (bi_label("Aggressive Only If", "Sart"), "Breadth and funding improve together"),
+            (bi_label("Defensive While", "Temkin"), "Fragility stays elevated"),
+        ]
+        return copy, rows, "WATCH", "warn"
+    copy = "Rejim yapici ama kusursuz degil; execution tarafinda sadece teyitli bolgelerde agirlik artirmak daha saglikli."
+    rows = [
+        (bi_label("Preferred Behavior", "Tercih"), "Selective continuation"),
+        (bi_label("Aggressive Only If", "Sart"), "Support holds with calmer positioning"),
+        (bi_label("Defensive While", "Temkin"), "Participation diverges"),
+    ]
+    return copy, rows, brief["focus"]["badge"], "warn"
+
+
 def render_signal_deck(
     kicker: str,
     title: str,
@@ -1788,12 +1954,25 @@ def render_signal_deck(
     score_value: str,
     score_label: str,
     chips: list[str] | None = None,
+    context_rows: list[tuple[str, object]] | None = None,
+    emphasis: str = "",
+    emphasis_kind: str = "warn",
 ):
+    context_html = "".join(
+        f"<div class='signal-context-item'><span class='signal-context-label'>{clean_text(label)}</span><span class='signal-context-value'>{display_value(value)}</span></div>"
+        for label, value in (context_rows or [])
+    )
     rows_html = "".join(
         f"<div class='signal-mini-row'><span>{clean_text(label)}</span><strong>{display_value(value)}</strong></div>"
         for label, value in rows
     )
     chip_html = "".join(f"<span class='signal-chip'>{clean_text(chip)}</span>" for chip in (chips or []))
+    emphasis_html = (
+        f"<div class='signal-deck-band signal-band-{clean_text(emphasis_kind)}'>{clean_text(emphasis)}</div>"
+        if emphasis
+        else ""
+    )
+    context_block = f"<div class='signal-context-grid'>{context_html}</div>" if context_html else ""
     st.markdown(
         f"""
         <div class="signal-deck">
@@ -1806,7 +1985,9 @@ def render_signal_deck(
                 </div>
             </div>
             <div class="signal-deck-copy">{clean_text(copy)}</div>
+            {emphasis_html}
             <div class="signal-chip-row">{chip_html}</div>
+            {context_block}
             <div class="signal-mini-list">{rows_html}</div>
         </div>
         """,
@@ -1833,6 +2014,11 @@ def render_breadth_surface(title: str, factor: dict, rows: list[tuple[str, objec
         score_value=f"{factor['score']}/100",
         score_label=factor.get("confidence_label", ""),
         chips=[chip for chip in chips if chip],
+        context_rows=[
+            (bi_label("Quality", "Kalite"), breadth_quality_label(factor)),
+            (bi_label("Dominant Driver", "Ana Surucu"), factor.get("primary_support", "-")),
+            (bi_label("Weakest Internal", "Ic Risk"), factor.get("primary_risk", "-")),
+        ],
     )
 
 
@@ -1855,10 +2041,10 @@ def render_command_surface(data: dict, brief: dict, analytics: dict, alerts: lis
         </div>
         """
         for label, value in [
-            ("Current Bias", scores["bias"]),
-            ("Focus Level", brief["focus"]["title"]),
-            ("Dominant Driver", scores["dominant_driver"]),
-            ("Weakest Link", scores["weakest_driver"]),
+            (bi_label("Current Bias", "Mevcut Egilim"), scores["bias"]),
+            (bi_label("Focus Level", "Odak Seviyesi"), brief["focus"]["title"]),
+            (bi_label("Dominant Driver", "Ana Surucu"), scores["dominant_driver"]),
+            (bi_label("Weakest Link", "En Zayif Halka"), scores["weakest_driver"]),
         ]
     )
     matters_html = "".join(f"<div class='command-list-item'>{clean_text(item)}</div>" for item in what_matters[:3])
@@ -1871,7 +2057,7 @@ def render_command_surface(data: dict, brief: dict, analytics: dict, alerts: lis
         f"""
         <div class="surface command-surface">
             <div>
-                <div class="panel-kicker">Command Surface</div>
+                <div class="panel-kicker">{clean_text(bi_label("Command Surface", "Komut Yuzeyi"))}</div>
                 <div class="command-title">{clean_text(scores['overlay'])}</div>
                 <div class="command-copy">
                     {clean_text(scores['summary'])} Bugunun ana tezi; {clean_text(brief['regime']['title'])},
@@ -1882,23 +2068,23 @@ def render_command_surface(data: dict, brief: dict, analytics: dict, alerts: lis
             <div class="command-stat-grid">{stat_html}</div>
             <div class="command-columns">
                 <div class="command-block">
-                    <div class="command-block-title">What Matters Now</div>
+                    <div class="command-block-title">{clean_text(bi_label("What Matters Now", "Su An Onemli Olan"))}</div>
                     <div class="command-list">{matters_html}</div>
                 </div>
                 <div class="command-block">
-                    <div class="command-block-title">Invalidate If</div>
+                    <div class="command-block-title">{clean_text(bi_label("Invalidate If", "Bozulur Eger"))}</div>
                     <div class="command-list">{invalidate_html}</div>
                 </div>
             </div>
             <div class="command-columns">
                 <div class="command-block">
-                    <div class="command-block-title">Watch Next</div>
+                    <div class="command-block-title">{clean_text(bi_label("Watch Next", "Siradaki Izlenecekler"))}</div>
                     <div class="command-list">{watch_html}</div>
                 </div>
                 <div class="command-block">
-                    <div class="command-block-title">Operating Context</div>
+                    <div class="command-block-title">{clean_text(bi_label("Operating Context", "Operasyon Baglami"))}</div>
                     <div class="command-list">
-                        <div class="command-list-item">Confidence {scores['confidence']}/100 | {clean_text(scores['confidence_label'])}</div>
+                        <div class="command-list-item">{clean_text(bi_label("Confidence", "Guven"))} {scores['confidence']}/100 | {clean_text(scores['confidence_label'])}</div>
                         <div class="command-list-item">Aktif alarm {len(alerts)} | veri sorunu {issue_count}</div>
                         <div class="command-list-item">Odak seviye: {clean_text(brief['focus']['detail'])}</div>
                     </div>
@@ -1931,23 +2117,23 @@ def render_catalyst_stream(data: dict, analytics: dict, alerts: list[dict], heal
     st.markdown(
         f"""
         <div class="surface">
-            <div class="panel-kicker">Catalyst Stream</div>
+            <div class="panel-kicker">{clean_text(bi_label("Catalyst Stream", "Katalizor Akisi"))}</div>
             <div class="panel-title">Bugun neyi izleyecegiz?</div>
             <div class="panel-copy">
                 Bu alan alarm, dikkat gerektiren tetikleyici ve veri sagligi sinyallerini tek operasyon akisi halinde toplar.
             </div>
             <div class="command-columns">
                 <div class="command-block">
-                    <div class="command-block-title">Active Alerts</div>
+                    <div class="command-block-title">{clean_text(bi_label("Active Alerts", "Aktif Alarmlar"))}</div>
                     <div class="command-list">{alert_html}</div>
                 </div>
                 <div class="command-block">
-                    <div class="command-block-title">Next Checkpoints</div>
+                    <div class="command-block-title">{clean_text(bi_label("Next Checkpoints", "Sonraki Kontroller"))}</div>
                     <div class="command-list">{watch_html}</div>
                 </div>
             </div>
             <div class="command-block">
-                <div class="command-block-title">Diagnostics</div>
+                <div class="command-block-title">{clean_text(bi_label("Diagnostics", "Tani Katmani"))}</div>
                 <div class="command-list">{issue_html}</div>
             </div>
         </div>
@@ -1975,6 +2161,14 @@ def render_score_panel(analytics: dict):
     fragility_html = "".join(
         f"<div class='fragility-flag'>{clean_text(flag)}</div>" for flag in scores["fragility"]["flags"]
     )
+    regime_cues = "".join(
+        f"<div class='regime-cue'><span>{clean_text(label)}</span><strong>{clean_text(value)}</strong></div>"
+        for label, value in [
+            (bi_label("Dominant Driver", "Ana Surucu"), scores["dominant_driver"]),
+            (bi_label("Weakest Link", "En Zayif Halka"), scores["weakest_driver"]),
+            (bi_label("Confidence", "Guven"), f"{scores['confidence']}/100"),
+        ]
+    )
     factor_html = ""
     for factor in scores["factors"]:
         delta_text, delta_class = score_delta_meta(factor["delta_7d"])
@@ -2000,14 +2194,14 @@ def render_score_panel(analytics: dict):
     st.markdown(
         f"""
         <div class="surface regime-panel">
-            <div class="panel-kicker">Risk Engine</div>
-            <div class="panel-title">Rejim Haritasi</div>
+            <div class="panel-kicker">{clean_text(bi_label("Risk Engine", "Risk Motoru"))}</div>
+            <div class="panel-title">{clean_text(bi_label("Regime Map", "Rejim Haritasi"))}</div>
             <div class="panel-copy">{clean_text(scores['summary'])}</div>
             <div class="regime-top">
                 <div class="regime-hero">
                     <div class="regime-hero-head">
                         <div>
-                            <div class="metric-label">Genel Rejim</div>
+                            <div class="metric-label">{clean_text(bi_label("Overall Regime", "Genel Rejim"))}</div>
                             <div class="regime-main-score">{scores['overall']}/100</div>
                         </div>
                         <div class="regime-overlay">{clean_text(scores['overlay'])}</div>
@@ -2016,28 +2210,29 @@ def render_score_panel(analytics: dict):
                         {clean_text(scores['regime_band'])}. Dominant surucu {clean_text(scores['dominant_driver'])};
                         en zayif halka ise {clean_text(scores['weakest_driver'])}.
                     </div>
+                    <div class="regime-cue-row">{regime_cues}</div>
                     <div class="regime-summary-grid">
                         <div class="summary-stat">
-                            <span class="summary-stat-label">Base Score</span>
+                            <span class="summary-stat-label">{clean_text(bi_label("Base Score", "Baz Skor"))}</span>
                             <span class="summary-stat-value">{scores['base_score']}/100</span>
                         </div>
                         <div class="summary-stat">
-                            <span class="summary-stat-label">Fragility Penalty</span>
+                            <span class="summary-stat-label">{clean_text(bi_label("Fragility Penalty", "Kirilganlik Cezasi"))}</span>
                             <span class="summary-stat-value">-{scores['penalty']}</span>
                         </div>
                         <div class="summary-stat">
-                            <span class="summary-stat-label">Dominant Driver</span>
+                            <span class="summary-stat-label">{clean_text(bi_label("Dominant Driver", "Ana Surucu"))}</span>
                             <span class="summary-stat-value">{clean_text(scores['dominant_driver'])}</span>
                         </div>
                         <div class="summary-stat">
-                            <span class="summary-stat-label">Weakest Link</span>
+                            <span class="summary-stat-label">{clean_text(bi_label("Weakest Link", "En Zayif Halka"))}</span>
                             <span class="summary-stat-value">{clean_text(scores['weakest_driver'])}</span>
                         </div>
                     </div>
                     <div class="contribution-list">{contribution_html}</div>
                 </div>
                 <div class="fragility-card">
-                    <div class="metric-label">Fragility Overlay</div>
+                    <div class="metric-label">{clean_text(bi_label("Fragility Overlay", "Kirilganlik Katmani"))}</div>
                     <div class="fragility-score">{scores['fragility']['score']}/100</div>
                     <div class="fragility-label">{clean_text(scores['fragility']['label'])}</div>
                     <div class="panel-copy" style="margin-top:10px">
@@ -2067,8 +2262,8 @@ def render_scenario_matrix(analytics: dict):
     st.markdown(
         f"""
         <div class="surface">
-            <div class="panel-kicker">Execution Map</div>
-            <div class="panel-title">Senaryo Matrisi</div>
+            <div class="panel-kicker">{clean_text(bi_label("Execution Map", "Islem Haritasi"))}</div>
+            <div class="panel-title">{clean_text(bi_label("Scenario Matrix", "Senaryo Matrisi"))}</div>
             <div class="panel-copy">Bir sonraki hareketin hangi kosullarda teyit edilecegini tek tabloda gosterir.</div>
             <table class="matrix-table">
                 <thead>
@@ -2187,7 +2382,10 @@ def render_news_tab(data: dict):
 
 
 def render_all_metrics_tab(data: dict):
-    st.markdown("<div class='table-section-title'>Tum Metrikler - Ham Veri</div>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='table-section-title'>{clean_text(bi_label('All Metrics - Raw Data', 'Tum Metrikler - Ham Veri'))}</div>",
+        unsafe_allow_html=True,
+    )
     st.markdown(
         "<div class='table-section-copy'>Tum ana veri basinliklarini tek bir atlas icinde topladim; terminalin veri tabani burada gruplu sekilde okunuyor.</div>",
         unsafe_allow_html=True,
@@ -2203,8 +2401,11 @@ def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[d
     participation = scores["participation"]
     macro_breadth = participation["subfactors"]["macro"]
     crypto_breadth = participation["subfactors"]["crypto"]
+    participation_gap = abs(macro_breadth["score"] - crypto_breadth["score"])
+    positioning_band, positioning_band_kind = build_positioning_emphasis(factors["positioning"], brief)
+    execution_copy, execution_context, execution_badge, execution_band_kind = build_execution_bridge(scores, brief)
 
-    st.markdown("<div class='table-section-title'>Terminal</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='table-section-title'>{clean_text(bi_label('Terminal', 'Komut Merkezi'))}</div>", unsafe_allow_html=True)
     st.markdown(
         "<div class='table-section-copy'>Ana ekran artik tek bir command center gibi calisiyor: once rejim, sonra bugunun okuması, sonra da trade'i bozabilecek sinyaller okunuyor.</div>",
         unsafe_allow_html=True,
@@ -2222,7 +2423,7 @@ def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[d
         factor = factors["liquidity"]
         delta_text, _ = score_delta_meta(factor["delta_7d"])
         render_signal_deck(
-            "Liquidity Deck",
+            bi_label("Liquidity Deck", "Likidite Katmani"),
             brief["liquidity"]["title"],
             factor["summary"],
             [
@@ -2233,12 +2434,17 @@ def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[d
             score_value=f"{factor['score']}/100",
             score_label=factor["confidence_label"],
             chips=[factor["state"], f"Weight {factor['weight_pct']}%", delta_text, factor["primary_risk"]],
+            context_rows=[
+                (bi_label("Driver", "Surucu"), factor["primary_support"]),
+                (bi_label("Weakest", "Zayif"), factor["primary_risk"]),
+                (bi_label("Confidence", "Guven"), factor["confidence_label"]),
+            ],
         )
     with deck_cols[1]:
         factor = factors["positioning"]
         delta_text, _ = score_delta_meta(factor["delta_7d"])
         render_signal_deck(
-            "Positioning Deck",
+            bi_label("Positioning Deck", "Pozisyon Katmani"),
             brief["positioning"]["title"],
             factor["summary"],
             [
@@ -2249,62 +2455,79 @@ def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[d
             score_value=f"{factor['score']}/100",
             score_label=factor["confidence_label"],
             chips=[factor["state"], f"Weight {factor['weight_pct']}%", delta_text, factor["primary_risk"]],
+            context_rows=[
+                (bi_label("Crowding", "Yogunluk"), factor["state"]),
+                (bi_label("Driver", "Surucu"), factor["primary_support"]),
+                (bi_label("Weakest", "Zayif"), factor["primary_risk"]),
+            ],
+            emphasis=positioning_band,
+            emphasis_kind=positioning_band_kind,
         )
     with deck_cols[2]:
         factor = factors["participation"]
         delta_text, _ = score_delta_meta(factor["delta_7d"])
         render_signal_deck(
-            "Composite Participation",
-            "Cross-Asset Participation",
+            bi_label("Composite Participation", "Bilesik Katilim"),
+            bi_label("Cross-Asset Participation", "Varliklar Arasi Katilim"),
             factor["summary"],
             [
                 ("Macro Breadth", f"{macro_breadth['score']}/100"),
                 ("Crypto Breadth", f"{crypto_breadth['score']}/100"),
-                ("Alignment", f"Gap {abs(macro_breadth['score'] - crypto_breadth['score'])}"),
+                ("Alignment", f"Gap {participation_gap}"),
             ],
             score_value=f"{factor['score']}/100",
             score_label=factor["confidence_label"],
             chips=[factor["state"], f"Weight {factor['weight_pct']}%", delta_text, factor["primary_risk"]],
+            context_rows=[
+                (bi_label("Macro Weight", "Agirlik"), "45%"),
+                (bi_label("Crypto Weight", "Agirlik"), "55%"),
+                (bi_label("Alignment", "Uyum"), participation_alignment_label(macro_breadth["score"], crypto_breadth["score"])),
+            ],
+            emphasis="Composite skor macro ve crypto katilimin birlikte teyit verip vermedigini olcer; gap buyurse rejim daha kirilgan okunur.",
+            emphasis_kind="warn" if participation_gap > 12 else "ok",
         )
     with deck_cols[3]:
         render_signal_deck(
-            "Execution Deck",
+            bi_label("Execution Deck", "Islem Katmani"),
             brief["focus"]["title"],
-            "Destek/direnc, order book uyumu ve fiyat teyidini ayni deck'te verir.",
+            execution_copy,
             [
                 ("Support", data.get("Sup_Wall", "-")),
                 ("Resistance", data.get("Res_Wall", "-")),
                 ("Signal", data.get("ORDERBOOK_SIGNAL", "-")),
             ],
             score_value=display_value(data.get("BTC_P", "-")),
-            score_label=brief["focus"]["badge"],
+            score_label=execution_badge,
             chips=[brief["regime"]["title"], brief["focus"]["badge"], brief["focus"]["class"].replace("signal-", "")],
+            context_rows=execution_context,
+            emphasis=f"In this regime, {brief['focus']['detail']}",
+            emphasis_kind=execution_band_kind,
         )
 
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
     breadth_left, breadth_right = st.columns(2)
     with breadth_left:
         render_breadth_surface(
-            "Macro Breadth",
+            bi_label("Macro Breadth", "Makro Yayilim"),
             macro_breadth,
             [
                 ("RSP vs SPY", f"{display_value(data.get('RSP_C'))} vs {display_value(data.get('SPY_C'))}"),
                 ("IWM vs SPY", f"{display_value(data.get('IWM_C'))} vs {display_value(data.get('SPY_C'))}"),
                 ("Sectors", "XLK | XLF | XLI | XLE | XLY"),
             ],
-            kicker="Participation Layer",
+            kicker=bi_label("Participation Layer", "Katilim Katmani"),
             note="Macro breadth genel risk katiliminin mega-cap disina, small-cap ve sektor ETF'lere yayilip yayilmadigini olcer.",
         )
     with breadth_right:
         render_breadth_surface(
-            "Crypto Breadth",
+            bi_label("Crypto Breadth", "Kripto Yayilim"),
             crypto_breadth,
             [
                 ("TOTAL2", data.get("TOTAL2_CAP", "-")),
                 ("TOTAL3", data.get("TOTAL3_CAP", "-")),
                 ("OTHERS / BTC Dom", f"{display_value(data.get('OTHERS_CAP'))} | {display_value(data.get('Dom'))}"),
             ],
-            kicker="Participation Layer",
+            kicker=bi_label("Participation Layer", "Katilim Katmani"),
             note="Crypto breadth BTC disi katilim, alt katman yayilimi ve dominance konsantrasyonunu birlikte okur.",
         )
 
@@ -2317,7 +2540,7 @@ def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[d
 
 
 def render_macro_tab(data: dict):
-    st.markdown("<div class='table-section-title'>Macro and Markets</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='table-section-title'>{clean_text(bi_label('Macro and Markets', 'Makro ve Piyasalar'))}</div>", unsafe_allow_html=True)
     st.markdown(
         "<div class='table-section-copy'>Global equity, emtia, doviz ve policy setini bolgesel bir terminal akisi halinde yeniden kurdum.</div>",
         unsafe_allow_html=True,
@@ -2332,7 +2555,7 @@ def render_macro_tab(data: dict):
 
 
 def render_flow_risk_tab(data: dict, health_summary: dict):
-    st.markdown("<div class='table-section-title'>Flow and Risk Surfaces</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='table-section-title'>{clean_text(bi_label('Flow and Risk Surfaces', 'Akis ve Risk Katmanlari'))}</div>", unsafe_allow_html=True)
     st.markdown(
         "<div class='table-section-copy'>Bu ekran ham veri tablosu degil; positioning, liquidity, macro breadth, crypto breadth ve execution katmanlarini once yorumlar, sonra detay yuzeylerine iner.</div>",
         unsafe_allow_html=True,
@@ -2342,68 +2565,96 @@ def render_flow_risk_tab(data: dict, health_summary: dict):
     participation = scores["participation"]
     macro_breadth = participation["subfactors"]["macro"]
     crypto_breadth = participation["subfactors"]["crypto"]
+    participation_gap = abs(macro_breadth["score"] - crypto_breadth["score"])
+    positioning_band, positioning_band_kind = build_positioning_emphasis(factors["positioning"], {"positioning": {"title": factors["positioning"]["state"]}})
+    execution_copy, execution_context, execution_badge, execution_band_kind = build_execution_bridge(
+        scores,
+        {"focus": {"badge": display_value(data.get("ORDERBOOK_SIGNAL_BADGE", "-"), fallback="watch"), "detail": display_value(data.get("ORDERBOOK_SIGNAL_DETAIL", "-"), fallback="order book teyidi bekleniyor")}},
+    )
     top_cols = st.columns(2)
     with top_cols[0]:
         factor = factors["positioning"]
         delta_text, _ = score_delta_meta(factor["delta_7d"])
         render_signal_deck(
-            "Positioning",
+            bi_label("Positioning", "Pozisyonlanma"),
             factor["state"],
             factor["summary"],
             [("OI", data.get("OI", "-")), ("Funding", data.get("FR", "-")), ("L/S", data.get("LS_Ratio", "-")), ("Taker", data.get("Taker", "-"))],
             score_value=f"{factor['score']}/100",
             score_label=factor["confidence_label"],
             chips=[delta_text, factor["primary_risk"], f"Weight {factor['weight_pct']}%"],
+            context_rows=[
+                (bi_label("Crowding", "Yogunluk"), factor["state"]),
+                (bi_label("Driver", "Surucu"), factor["primary_support"]),
+                (bi_label("Weakest", "Zayif"), factor["primary_risk"]),
+            ],
+            emphasis=positioning_band,
+            emphasis_kind=positioning_band_kind,
         )
     with top_cols[1]:
         factor = factors["liquidity"]
         delta_text, _ = score_delta_meta(factor["delta_7d"])
         render_signal_deck(
-            "Liquidity",
+            bi_label("Liquidity", "Likidite"),
             factor["state"],
             factor["summary"],
             [("ETF", data.get("ETF_FLOW_TOTAL", "-")), ("DXY", data.get("DXY", "-")), ("US10Y", data.get("US10Y", "-")), ("USDT.D", data.get("USDT_D", "-"))],
             score_value=f"{factor['score']}/100",
             score_label=factor["confidence_label"],
             chips=[delta_text, factor["primary_risk"], f"Weight {factor['weight_pct']}%"],
+            context_rows=[
+                (bi_label("Driver", "Surucu"), factor["primary_support"]),
+                (bi_label("Weakest", "Zayif"), factor["primary_risk"]),
+                (bi_label("Confidence", "Guven"), factor["confidence_label"]),
+            ],
         )
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
     mid_cols = st.columns(3)
     with mid_cols[0]:
         render_breadth_surface(
-            "Macro Breadth",
+            bi_label("Macro Breadth", "Makro Yayilim"),
             macro_breadth,
             [("RSP", data.get("RSP_C", "-")), ("IWM", data.get("IWM_C", "-")), ("QQQ", data.get("QQQ_C", "-")), ("Sectors", "XLK | XLF | XLI | XLE | XLY")],
-            kicker="Breadth",
+            kicker=bi_label("Breadth", "Yayilim"),
             note="Makro katilim burada ETF proxy'leri ile olculur; mega-cap disi katilim guclenirse skor yukselir.",
         )
     with mid_cols[1]:
         render_breadth_surface(
-            "Crypto Breadth",
+            bi_label("Crypto Breadth", "Kripto Yayilim"),
             crypto_breadth,
             [("TOTAL2", data.get("TOTAL2_CAP", "-")), ("TOTAL3", data.get("TOTAL3_CAP", "-")), ("OTHERS", data.get("OTHERS_CAP", "-")), ("BTC Dom", data.get("Dom", "-"))],
-            kicker="Breadth",
+            kicker=bi_label("Breadth", "Yayilim"),
             note="Crypto breadth BTC disi katilim ve dominance yogunlasmasi ile birlikte okunur.",
         )
     with mid_cols[2]:
         render_signal_deck(
-            "Execution",
+            bi_label("Execution", "Uygulama"),
             display_value(data.get("ORDERBOOK_SIGNAL", "-")),
-            "Coklu borsa seviyeleri ile ETF ve fiyat tepkisi bu deck'te birlikte okunur.",
+            execution_copy,
             [("Support", data.get("Sup_Wall", "-")), ("Resistance", data.get("Res_Wall", "-")), ("Wall Status", data.get("Wall_Status", "-")), ("ETF Flow", data.get("ETF_FLOW_TOTAL", "-"))],
             score_value=display_value(data.get("BTC_P", "-")),
-            score_label="spot",
+            score_label=execution_badge,
             chips=[display_value(data.get("ORDERBOOK_SIGNAL_BADGE", "-"), fallback="watch"), display_value(data.get("ORDERBOOK_SIGNAL_CLASS", "-"), fallback="neutral")],
+            context_rows=execution_context,
+            emphasis=f"In this regime, {display_value(data.get('ORDERBOOK_SIGNAL_DETAIL', '-'), fallback='order book teyidi bekleniyor')}",
+            emphasis_kind=execution_band_kind,
         )
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
     render_signal_deck(
-        "Composite Participation",
+        bi_label("Composite Participation", "Bilesik Katilim"),
         participation["state"],
         participation["summary"],
-        [("Macro Breadth", f"{macro_breadth['score']}/100"), ("Crypto Breadth", f"{crypto_breadth['score']}/100"), ("Alignment Gap", abs(macro_breadth["score"] - crypto_breadth["score"]))],
+        [("Macro Breadth", f"{macro_breadth['score']}/100"), ("Crypto Breadth", f"{crypto_breadth['score']}/100"), ("Alignment Gap", participation_gap)],
         score_value=f"{participation['score']}/100",
         score_label=participation["confidence_label"],
         chips=[f"Weight {participation['weight_pct']}%", participation["primary_risk"], score_delta_meta(participation["delta_7d"])[0]],
+        context_rows=[
+            (bi_label("Macro Weight", "Agirlik"), "45%"),
+            (bi_label("Crypto Weight", "Agirlik"), "55%"),
+            (bi_label("Alignment", "Uyum"), participation_alignment_label(macro_breadth["score"], crypto_breadth["score"])),
+        ],
+        emphasis="Composite katilim macro ve crypto breadth'i ayni karar cümlesinde toplar; ayrisma buyurse execution daha secici kalmali.",
+        emphasis_kind="warn" if participation_gap > 12 else "ok",
     )
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
     render_source_health_surface(
@@ -2422,7 +2673,7 @@ def render_flow_risk_tab(data: dict, health_summary: dict):
 def render_report_tab(
     client, data: dict, brief: dict, analytics: dict, alerts: list[dict], health_summary: dict, report_depth: str
 ):
-    st.markdown("<div class='table-section-title'>Reports and Catalysts</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='table-section-title'>{clean_text(bi_label('Reports and Catalysts', 'Raporlar ve Katalizorler'))}</div>", unsafe_allow_html=True)
     st.markdown(
         "<div class='table-section-copy'>Raporlar sekmesi artik sadece widget koleksiyonu degil; senaryo, AI yorumu, takvim ve haber akislarini ayni raporlama yüzeyinde toplar.</div>",
         unsafe_allow_html=True,
