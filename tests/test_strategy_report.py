@@ -98,7 +98,9 @@ def test_strategy_report_prompt_includes_new_sections_and_tags():
     assert "<x_thread>" in prompt
     assert "Ekonomik takvim" in prompt
     assert "Veri sagligi" in prompt
-    assert "Bugunun Ozeti" in prompt
+    assert "SA Finance Alpha Makro Bulteni Giris" in prompt
+    assert "Long / Short / Bekle ve Kritik Riskler" in prompt
+    assert "1/5 ..." in prompt
 
 
 def test_parse_report_payload_splits_tagged_response():
@@ -145,9 +147,9 @@ def test_parse_report_payload_falls_back_when_content_is_not_tagged_string():
 
     parsed = _parse_report_payload(raw, data, brief, analytics)
 
-    assert "### Bugunun Ozeti" in parsed["terminal_report"]
+    assert "### SA Finance Alpha Makro Bulteni Giris" in parsed["terminal_report"]
     assert parsed["x_lead"]
-    assert parsed["x_thread"].startswith("1/4")
+    assert parsed["x_thread"].startswith("1/5")
     assert "Provider came back without tags" in parsed["raw"]
 
 
@@ -204,20 +206,20 @@ class _FakeClient:
 
 def test_generate_strategy_report_supports_legacy_depth_only_call():
     data, _, analytics, _, _ = _sample_context()
-    client = _FakeClient("<terminal_report>Legacy</terminal_report><x_lead>Lead</x_lead><x_thread>1/4 A</x_thread>")
+    client = _FakeClient("<terminal_report>Legacy</terminal_report><x_lead>Lead</x_lead><x_thread>1/5 A</x_thread>")
 
     report = generate_strategy_report(client, data, depth="Orta")
 
     assert "Legacy" in report["terminal_report"]
     assert report["x_lead"] == "Lead"
-    assert report["x_thread"].startswith("1/4")
+    assert report["x_thread"].startswith("1/5")
     assert report["terminal_report"]
     assert analytics["scores"]["overall"] == 68
 
 
 def test_generate_strategy_report_supports_context_rich_call():
     data, brief, analytics, alerts, health_summary = _sample_context()
-    client = _FakeClient("<terminal_report>Rich</terminal_report><x_lead>Lead</x_lead><x_thread>1/4 A</x_thread>")
+    client = _FakeClient("<terminal_report>Rich</terminal_report><x_lead>Lead</x_lead><x_thread>1/5 A</x_thread>")
 
     report = generate_strategy_report(
         client,
@@ -231,4 +233,4 @@ def test_generate_strategy_report_supports_context_rich_call():
 
     assert "Rich" in report["terminal_report"]
     assert report["x_lead"] == "Lead"
-    assert report["x_thread"].startswith("1/4")
+    assert report["x_thread"].startswith("1/5")
