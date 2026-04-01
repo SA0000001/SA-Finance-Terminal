@@ -1901,12 +1901,12 @@ def render_source_health_surface(title: str, caption: str, rows: list[dict], *, 
         f"""
         <div class="source-health-row">
             <div>
-                <div class="source-health-source">{clean_text(row['Kaynak'])}</div>
-                <div class="source-health-detail">{clean_text(row['Hata'] if row['Hata'] != '-' else 'Son basarili: ' + row['Son basarili'])}</div>
+                <div class="source-health-source">{html.escape(clean_text(row['Kaynak']))}</div>
+                <div class="source-health-detail">{html.escape(clean_text(row['Hata'] if row['Hata'] != '-' else 'Son basarili: ' + row['Son basarili']))}</div>
             </div>
             <div class="source-health-meta">
-                <span class="source-health-status source-status-{row['Durum'].lower()}">{clean_text(row['Durum'])}</span>
-                <span>{clean_text(row['Gecikme'])}</span>
+                <span class="source-health-status source-status-{str(row['Durum']).lower()}">{html.escape(clean_text(row['Durum']))}</span>
+                <span>{html.escape(clean_text(row['Gecikme']))}</span>
             </div>
         </div>
         """
