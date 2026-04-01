@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from ui.components import clean_text, render_health_bar
+from ui.components import bi_label, clean_text, render_health_bar
 
 
 def render_page_header(last_updated: str, health_summary: dict, brief: dict, preferences: dict, analytics: dict):
@@ -17,15 +17,15 @@ def render_page_header(last_updated: str, health_summary: dict, brief: dict, pre
                 </div>
                 <div class="header-summary">
                     <div class="summary-chip">
-                        <span>Market State</span>
+                        <span>{clean_text(bi_label("Market State", "Piyasa Durumu"))}</span>
                         <strong>{clean_text(scores["overlay"])}</strong>
                     </div>
                     <div class="summary-chip">
-                        <span>Fragility</span>
+                        <span>{clean_text(bi_label("Fragility", "Kirilganlik"))}</span>
                         <strong>{clean_text(scores["fragility"]["label"])}</strong>
                     </div>
                     <div class="summary-chip">
-                        <span>Confidence</span>
+                        <span>{clean_text(bi_label("Confidence", "Guven"))}</span>
                         <strong>{scores["confidence"]}/100 | {clean_text(scores["confidence_label"])}</strong>
                     </div>
                 </div>
@@ -75,7 +75,7 @@ def render_health_alerts(health_summary: dict):
     st.markdown(
         f"""
         <div class="surface health-alert-surface">
-            <div class="panel-kicker">Source Health</div>
+            <div class="panel-kicker">{clean_text(bi_label("Source Health", "Kaynak Sagligi"))}</div>
             <div class="panel-title">Veri akisinda dikkat isteyen kaynaklar var</div>
             <div class="panel-copy">
                 "Veri bekleniyor" gorunen alanlarin nedeni artik burada acik sekilde listelenir.

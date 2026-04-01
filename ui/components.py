@@ -20,6 +20,12 @@ def clean_text(value):
     return text
 
 
+def bi_label(english: str, turkish: str = "") -> str:
+    english_text = clean_text(english)
+    turkish_text = clean_text(turkish)
+    return f"{english_text} ({turkish_text})" if turkish_text and turkish_text != PLACEHOLDER else english_text
+
+
 def is_missing(value) -> bool:
     return clean_text(value).strip() in {PLACEHOLDER, "", "None"}
 
