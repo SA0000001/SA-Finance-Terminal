@@ -116,6 +116,63 @@ def _set_defaults(target: dict, defaults: dict):
     target.update(defaults)
 
 
+def _parse_calendar_timestamp(date_text: str, time_text: str):
+    for candidate in (f"{date_text} {time_text}".strip(), str(date_text).strip()):
+        if not candidate:
+            continue
+        parsed = pd.to_datetime(candidate, errors="coerce")
+        if pd.notna(parsed):
+            return parsed
+    return None
+
+
+def _normalize_calendar_events(events, now=None):
+    if not isinstance(events, list):
+        return []
+
+    now = now or pd.Timestamp.now(tz="Europe/Istanbul")
+    today = now.date()
+    horizon = (now + pd.Timedelta(hours=36)).date()
+    normalized = []
+
+    for item in events:
+        if not isinstance(item, dict):
+            continue
+
+        impact = str(item.get("impact", "")).strip()
+        if "high" not in impact.lower():
+            continue
+
+        title = str(item.get("title", "")).strip()
+        country = str(item.get("country", "")).strip()
+        date_text = str(item.get("date", "")).strip()
+        time_text = str(item.get("time", "")).strip()
+        parsed = _parse_calendar_timestamp(date_text, time_text)
+        if parsed is None:
+            continue
+
+        if today <= parsed.date() <= horizon:
+            normalized.append(
+                {
+                    "title": title or PLACEHOLDER,
+                    "country": country or PLACEHOLDER,
+                    "impact": impact or "High",
+                    "date": date_text or PLACEHOLDER,
+                    "time": time_text or PLACEHOLDER,
+                    "actual": str(item.get("actual", "")).strip() or PLACEHOLDER,
+                    "forecast": str(item.get("forecast", "")).strip() or PLACEHOLDER,
+                    "previous": str(item.get("previous", "")).strip() or PLACEHOLDER,
+                    "_sort": parsed,
+                }
+            )
+
+    normalized.sort(key=lambda item: item["_sort"])
+    return [
+        {key: value for key, value in event.items() if key != "_sort"}
+        for event in normalized[:5]
+    ]
+
+
 def format_flow_millions(value):
     number = parse_number(value)
     if number is None:
@@ -1719,6 +1776,36 @@ def _fetch_sentiment_snapshot():
     return data
 
 
+@st.cache_data(ttl=SENTIMENT_TTL)
+def _fetch_economic_calendar_snapshot():
+    data = {"ECONOMIC_CALENDAR": [], "ECONOMIC_CALENDAR_SOURCE": PLACEHOLDER}
+    health = HealthRecorder()
+    response = None
+    try:
+        response = safe_fetch_json(
+            "FairEconomy Calendar",
+            "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
+            timeout=8,
+            headers=HEADERS,
+        )
+        data["ECONOMIC_CALENDAR"] = _normalize_calendar_events(response.payload)
+        data["ECONOMIC_CALENDAR_SOURCE"] = "FairEconomy"
+        health.success("FairEconomy Calendar", response.latency_ms, stale_after_seconds=3600)
+    except FetchError as exc:
+        _record_fetch_error(health, "FairEconomy Calendar", exc, stale_after_seconds=3600)
+    except DATA_PARSE_EXCEPTIONS as exc:
+        _record_parse_error(
+            health,
+            "FairEconomy Calendar",
+            exc,
+            latency_ms=response.latency_ms if response else None,
+            stale_after_seconds=3600,
+        )
+
+    data["_health"] = health.export()
+    return data
+
+
 def veri_motoru(fred_api_key=""):
     payloads = _run_parallel_tasks(
         {
@@ -1729,8 +1816,9 @@ def veri_motoru(fred_api_key=""):
             "macro": lambda: _fetch_macro_snapshot(fred_api_key),
             "onchain": _fetch_onchain_snapshot,
             "sentiment": _fetch_sentiment_snapshot,
+            "calendar": _fetch_economic_calendar_snapshot,
         },
-        max_workers=7,
+        max_workers=8,
     )
     data = _merge_result_payloads(*payloads.values())
     data.setdefault("OI", PLACEHOLDER)
@@ -1740,6 +1828,8 @@ def veri_motoru(fred_api_key=""):
     data.setdefault("Long_Pct", PLACEHOLDER)
     data.setdefault("Short_Pct", PLACEHOLDER)
     data.setdefault("LS_Signal", PLACEHOLDER)
+    data.setdefault("ECONOMIC_CALENDAR", [])
+    data.setdefault("ECONOMIC_CALENDAR_SOURCE", PLACEHOLDER)
     if data.get("Total_Stable_Num") and data.get("Total_MCap_Num"):
         data["STABLE_C_D"] = f"%{data['Total_Stable_Num']/data['Total_MCap_Num']*100:.2f}"
     return data
