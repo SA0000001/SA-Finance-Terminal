@@ -1,0 +1,55 @@
+name: Daily Macro Bulletin
+
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+    inputs:
+      report_depth:
+        description: "Makro Bulten derinligi"
+        required: false
+        default: "Orta"
+        type: choice
+        options:
+          - Kisa
+          - Orta
+          - Derin
+      openrouter_model:
+        description: "OpenRouter modeli"
+        required: false
+        default: "google/gemini-2.5-flash"
+        type: string
+
+jobs:
+  send-bulletin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      REPORT_DEPTH: ${{ github.event.inputs.report_depth || 'Orta' }}
+      OPENROUTER_MODEL: ${{ github.event.inputs.openrouter_model || 'google/gemini-2.5-flash' }}
+      TZ: Europe/Istanbul
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Send Telegram Macro Bulletin
+        run: python notify.py
