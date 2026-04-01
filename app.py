@@ -2522,7 +2522,7 @@ def _call_strategy_report(client, data: dict, brief: dict, analytics: dict, aler
 
 def render_ai_report(client, data: dict, brief: dict, analytics: dict, alerts: list[dict], health_summary: dict, report_depth: str):
     st.subheader("Makro Bulten")
-    st.caption(f"Derinlik: {report_depth} | Research note + X ozet paketi birlikte uretilir.")
+    st.caption(f"Derinlik: {report_depth} | Veri + yorum + seviye odakli Makro Bulten ve X ozet paketi birlikte uretilir.")
     if not client:
         st.info("OPENROUTER_API_KEY yok. AI raporu pasif.")
         return
