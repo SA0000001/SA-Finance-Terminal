@@ -1,4 +1,5 @@
 import html
+import inspect
 import os
 
 import pandas as pd
@@ -2394,6 +2395,72 @@ def render_report_panel(kicker: str, title: str, body: str):
     )
 
 
+def _fallback_bulten_payload(data: dict, analytics: dict, terminal_report: str = "") -> dict:
+    scores = analytics.get("scores", {})
+    fallback_terminal = terminal_report or "\n".join(
+        [
+            "### Bugunun Ozeti",
+            f"BTC {display_value(data.get('BTC_P', '-'))} seviyesinde. Rejim {scores.get('overall', '-')}/100 ve {clean_text(scores.get('overlay', '-'))}.",
+            "",
+            "### Rejim ve Bias",
+            f"{clean_text(scores.get('bias', 'Mevcut bias verisi bekleniyor.'))}",
+            "",
+            "### Seviyeler ve Invalidation",
+            f"Destek {display_value(data.get('Sup_Wall', '-'))}, direnc {display_value(data.get('Res_Wall', '-'))}.",
+        ]
+    )
+    lead = (
+        f"Makro Bulten: BTC {display_value(data.get('BTC_P', '-'))}, rejim {scores.get('overall', '-')}/100 "
+        f"({clean_text(scores.get('overlay', '-'))}). ETF {display_value(data.get('ETF_FLOW_TOTAL', '-'))}, "
+        f"DXY {display_value(data.get('DXY', '-'))}, VIX {display_value(data.get('VIX', '-'))} izlenmeli."
+    )[:280]
+    thread = "\n".join(
+        [
+            f"1/4 Rejim {scores.get('overall', '-')}/100 ve etiket {clean_text(scores.get('overlay', '-'))}.",
+            f"2/4 Makro: DXY {display_value(data.get('DXY', '-'))}, US10Y {display_value(data.get('US10Y', '-'))}, VIX {display_value(data.get('VIX', '-'))}.",
+            f"3/4 Kripto internalleri: funding {display_value(data.get('FR', '-'))}, OI {display_value(data.get('OI', '-'))}, L/S {display_value(data.get('LS_Ratio', '-'))}, Taker {display_value(data.get('Taker', '-'))}.",
+            f"4/4 Seviyeler: destek {display_value(data.get('Sup_Wall', '-'))}, direnc {display_value(data.get('Res_Wall', '-'))}.",
+        ]
+    )
+    return {
+        "terminal_report": fallback_terminal,
+        "x_lead": lead,
+        "x_thread": thread,
+        "raw": str(terminal_report or "").strip(),
+    }
+
+
+def _normalize_bulten_result(result, data: dict, analytics: dict) -> dict:
+    if isinstance(result, dict):
+        return {
+            "terminal_report": str(result.get("terminal_report") or _fallback_bulten_payload(data, analytics)["terminal_report"]),
+            "x_lead": str(result.get("x_lead") or _fallback_bulten_payload(data, analytics)["x_lead"]),
+            "x_thread": str(result.get("x_thread") or _fallback_bulten_payload(data, analytics)["x_thread"]),
+            "raw": str(result.get("raw") or ""),
+        }
+    return _fallback_bulten_payload(data, analytics, terminal_report=str(result or ""))
+
+
+def _call_strategy_report(client, data: dict, brief: dict, analytics: dict, alerts: list[dict], health_summary: dict, report_depth: str):
+    try:
+        params = inspect.signature(generate_strategy_report).parameters
+    except (TypeError, ValueError):
+        params = {}
+
+    if {"brief", "analytics", "alerts", "health_summary"}.issubset(params):
+        return generate_strategy_report(
+            client,
+            data,
+            brief,
+            analytics,
+            alerts,
+            health_summary,
+            depth=report_depth,
+        )
+
+    return generate_strategy_report(client, data, depth=report_depth)
+
+
 def render_ai_report(client, data: dict, brief: dict, analytics: dict, alerts: list[dict], health_summary: dict, report_depth: str):
     st.subheader("Makro Bulten")
     st.caption(f"Derinlik: {report_depth} | Terminal raporu ve X paketi birlikte uretilir.")
@@ -2403,16 +2470,13 @@ def render_ai_report(client, data: dict, brief: dict, analytics: dict, alerts: l
     if st.button("Makro Bulten olustur", use_container_width=True):
         with st.spinner("AI raporu hazirlaniyor..."):
             try:
-                report = generate_strategy_report(
-                    client,
-                    data,
-                    brief,
-                    analytics,
-                    alerts,
-                    health_summary,
-                    depth=report_depth,
+                report = _call_strategy_report(
+                    client, data, brief, analytics, alerts, health_summary, report_depth
                 )
-                st.session_state["macro_bulten_report"] = report
+                st.session_state["macro_bulten_report"] = _normalize_bulten_result(report, data, analytics)
+            except TypeError:
+                st.session_state["macro_bulten_report"] = _fallback_bulten_payload(data, analytics)
+                st.warning("Model yaniti beklenmeyen formatta geldi; fallback bulten gosteriliyor.")
             except (APIConnectionError, APITimeoutError, RateLimitError, APIError, ValueError) as exc:
                 st.error(f"AI hatasi: {exc}")
                 return
