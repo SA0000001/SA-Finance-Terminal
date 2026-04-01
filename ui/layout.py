@@ -3,11 +3,16 @@ import html
 import pandas as pd
 import streamlit as st
 
+from services.health import normalize_health_display_text
 from ui.components import bi_label, clean_text, render_health_bar
 
 
 def _escape_html(value) -> str:
     return html.escape(clean_text(value))
+
+
+def normalize_health_cell(value) -> str:
+    return clean_text(normalize_health_display_text(value))
 
 
 def render_page_header(last_updated: str, health_summary: dict, brief: dict, preferences: dict, analytics: dict):
@@ -99,22 +104,27 @@ def render_status_hub(last_updated: str, health_summary: dict, alerts: list[dict
     )
     if issue_rows:
         with st.expander("Source health details", expanded=False):
-            issue_html = "".join(
-                f"""
-                <div class="health-issue-row">
-                    <div>
-                        <div class="health-issue-source">{_escape_html(row['Kaynak'])}</div>
-                        <div class="health-issue-error">{_escape_html(row['Hata'])}</div>
-                    </div>
-                    <div class="health-issue-meta">
-                        <span class="health-issue-status health-issue-{str(row['Durum']).lower()}">{_escape_html(row['Durum'])}</span>
-                        <span>{_escape_html(row['Son basarili'])}</span>
-                    </div>
-                </div>
-                """
-                for row in issue_rows[:6]
-            )
-            st.markdown(f"<div class='health-issue-list'>{issue_html}</div>", unsafe_allow_html=True)
+            for row in issue_rows[:6]:
+                source = normalize_health_cell(row.get("Kaynak"))
+                error = normalize_health_cell(row.get("Hata"))
+                status = normalize_health_cell(row.get("Durum"))
+                last_success = normalize_health_cell(row.get("Son basarili"))
+                left_col, right_col = st.columns([5, 1.2], vertical_alignment="top")
+                with left_col:
+                    st.markdown(f"<div class='health-issue-source'>{_escape_html(source)}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='health-issue-error'>{_escape_html(error)}</div>", unsafe_allow_html=True)
+                with right_col:
+                    status_kind = status.lower()
+                    st.markdown(
+                        (
+                            f"<div class='health-issue-meta'>"
+                            f"<span class='health-issue-status health-issue-{_escape_html(status_kind)}'>{_escape_html(status)}</span>"
+                            f"<span>{_escape_html(last_success)}</span>"
+                            f"</div>"
+                        ),
+                        unsafe_allow_html=True,
+                    )
+                st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
 
 def render_health_panel(health_summary: dict):
