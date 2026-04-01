@@ -9,9 +9,52 @@ def build_openrouter_client(api_key: str) -> OpenAI:
     return OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
 
 
-def _extract_tagged_section(text: str, tag: str) -> str:
+def _safe(value, fallback: str = "-") -> str:
+    if value in (None, "", [], {}):
+        return fallback
+    return str(value)
+
+
+def _normalize_content_part(part) -> str:
+    if part is None:
+        return ""
+    if isinstance(part, str):
+        return part
+    if isinstance(part, dict):
+        for key in ("text", "content", "value", "output_text"):
+            value = part.get(key)
+            if isinstance(value, list):
+                normalized = _normalize_content(value)
+                if normalized:
+                    return normalized
+            if value not in (None, ""):
+                return str(value)
+        return ""
+    for attr in ("text", "content", "value", "output_text"):
+        value = getattr(part, attr, None)
+        if isinstance(value, list):
+            normalized = _normalize_content(value)
+            if normalized:
+                return normalized
+        if value not in (None, ""):
+            return str(value)
+    return ""
+
+
+def _normalize_content(content) -> str:
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "\n".join(part for part in (_normalize_content_part(item) for item in content) if part).strip()
+    return _normalize_content_part(content)
+
+
+def _extract_tagged_section(text, tag: str) -> str:
+    normalized_text = _normalize_content(text)
     pattern = re.compile(rf"<{tag}>\s*(.*?)\s*</{tag}>", re.IGNORECASE | re.DOTALL)
-    match = pattern.search(text or "")
+    match = pattern.search(normalized_text or "")
     return match.group(1).strip() if match else ""
 
 
@@ -33,12 +76,6 @@ def _fallback_x_thread(data: dict, analytics: dict) -> str:
         f"4/4 Seviyeler: destek {_safe(data.get('Sup_Wall'))}, direnc {_safe(data.get('Res_Wall'))}. Invalidate: {(_safe(' | '.join(scores.get('invalidate_conditions', [])[:1])))}",
     ]
     return "\n".join(items)
-
-
-def _safe(value, fallback: str = "-") -> str:
-    if value in (None, "", [], {}):
-        return fallback
-    return str(value)
 
 
 def _fallback_terminal_report(data: dict, brief: dict, analytics: dict) -> str:
@@ -69,7 +106,8 @@ def _fallback_terminal_report(data: dict, brief: dict, analytics: dict) -> str:
     )
 
 
-def _parse_report_payload(content: str, data: dict, brief: dict, analytics: dict) -> dict:
+def _parse_report_payload(content, data: dict, brief: dict, analytics: dict) -> dict:
+    normalized_content = _normalize_content(content)
     terminal_report = _extract_tagged_section(content, "terminal_report")
     x_lead = _extract_tagged_section(content, "x_lead")
     x_thread = _extract_tagged_section(content, "x_thread")
@@ -78,7 +116,7 @@ def _parse_report_payload(content: str, data: dict, brief: dict, analytics: dict
         "terminal_report": terminal_report or _fallback_terminal_report(data, brief, analytics),
         "x_lead": x_lead or _fallback_x_lead(data, analytics),
         "x_thread": x_thread or _fallback_x_thread(data, analytics),
-        "raw": content.strip(),
+        "raw": normalized_content.strip(),
     }
 
 
@@ -111,5 +149,5 @@ def generate_strategy_report(
         ],
         max_tokens=8000,
     )
-    content = response.choices[0].message.content or ""
+    content = _normalize_content(response.choices[0].message.content)
     return _parse_report_payload(content, data, brief, analytics)
