@@ -1331,8 +1331,26 @@ def _fetch_market_snapshot():
             period="5d",
             value_template="{value:.4f}",
         ),
+        "breadth": lambda: _load_yfinance_change_group(
+            data,
+            health,
+            "yFinance Breadth Proxies",
+            {
+                "SPY": "SPY",
+                "RSP": "RSP",
+                "QQQ": "QQQ",
+                "IWM": "IWM",
+                "XLK": "XLK",
+                "XLF": "XLF",
+                "XLI": "XLI",
+                "XLE": "XLE",
+                "XLY": "XLY",
+            },
+            period="5d",
+            value_template="${value:,.2f}",
+        ),
     }
-    _run_parallel_tasks(yfinance_tasks, max_workers=4)
+    _run_parallel_tasks(yfinance_tasks, max_workers=5)
 
     correlation_payload = None
     correlation_latency = None
