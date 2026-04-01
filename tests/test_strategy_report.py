@@ -1,5 +1,5 @@
 from prompts.strategy_report import build_strategy_report_prompt
-from services.ai_service import _normalize_content, _parse_report_payload
+from services.ai_service import _normalize_content, _parse_report_payload, generate_strategy_report
 from services.market_data import _normalize_calendar_events
 
 
@@ -167,3 +167,68 @@ def test_normalize_calendar_events_keeps_only_near_high_impact_items():
     assert "Tomorrow Event" in titles
     assert "Old Event" not in titles
     assert "Low Impact" not in titles
+
+
+class _FakeMessage:
+    def __init__(self, content):
+        self.content = content
+
+
+class _FakeChoice:
+    def __init__(self, content):
+        self.message = _FakeMessage(content)
+
+
+class _FakeResponse:
+    def __init__(self, content):
+        self.choices = [_FakeChoice(content)]
+
+
+class _FakeCompletions:
+    def __init__(self, content):
+        self._content = content
+
+    def create(self, **kwargs):
+        return _FakeResponse(self._content)
+
+
+class _FakeChat:
+    def __init__(self, content):
+        self.completions = _FakeCompletions(content)
+
+
+class _FakeClient:
+    def __init__(self, content):
+        self.chat = _FakeChat(content)
+
+
+def test_generate_strategy_report_supports_legacy_depth_only_call():
+    data, _, analytics, _, _ = _sample_context()
+    client = _FakeClient("<terminal_report>Legacy</terminal_report><x_lead>Lead</x_lead><x_thread>1/4 A</x_thread>")
+
+    report = generate_strategy_report(client, data, depth="Orta")
+
+    assert "Legacy" in report["terminal_report"]
+    assert report["x_lead"] == "Lead"
+    assert report["x_thread"].startswith("1/4")
+    assert report["terminal_report"]
+    assert analytics["scores"]["overall"] == 68
+
+
+def test_generate_strategy_report_supports_context_rich_call():
+    data, brief, analytics, alerts, health_summary = _sample_context()
+    client = _FakeClient("<terminal_report>Rich</terminal_report><x_lead>Lead</x_lead><x_thread>1/4 A</x_thread>")
+
+    report = generate_strategy_report(
+        client,
+        data,
+        brief,
+        analytics,
+        alerts,
+        health_summary,
+        depth="Orta",
+    )
+
+    assert "Rich" in report["terminal_report"]
+    assert report["x_lead"] == "Lead"
+    assert report["x_thread"].startswith("1/4")
