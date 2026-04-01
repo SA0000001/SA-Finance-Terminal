@@ -1,7 +1,13 @@
+import html
+
 import pandas as pd
 import streamlit as st
 
 from ui.components import bi_label, clean_text, render_health_bar
+
+
+def _escape_html(value) -> str:
+    return html.escape(clean_text(value))
 
 
 def render_page_header(last_updated: str, health_summary: dict, brief: dict, preferences: dict, analytics: dict):
@@ -97,12 +103,12 @@ def render_status_hub(last_updated: str, health_summary: dict, alerts: list[dict
                 f"""
                 <div class="health-issue-row">
                     <div>
-                        <div class="health-issue-source">{clean_text(row['Kaynak'])}</div>
-                        <div class="health-issue-error">{clean_text(row['Hata'])}</div>
+                        <div class="health-issue-source">{_escape_html(row['Kaynak'])}</div>
+                        <div class="health-issue-error">{_escape_html(row['Hata'])}</div>
                     </div>
                     <div class="health-issue-meta">
-                        <span class="health-issue-status health-issue-{row['Durum'].lower()}">{clean_text(row['Durum'])}</span>
-                        <span>{clean_text(row['Son basarili'])}</span>
+                        <span class="health-issue-status health-issue-{str(row['Durum']).lower()}">{_escape_html(row['Durum'])}</span>
+                        <span>{_escape_html(row['Son basarili'])}</span>
                     </div>
                 </div>
                 """
