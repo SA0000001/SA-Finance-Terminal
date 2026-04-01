@@ -123,13 +123,34 @@ def _parse_report_payload(content, data: dict, brief: dict, analytics: dict) -> 
 def generate_strategy_report(
     client: OpenAI,
     data: dict,
-    brief: dict,
-    analytics: dict,
-    alerts: list[dict],
-    health_summary: dict,
+    *args,
+    brief: dict | None = None,
+    analytics: dict | None = None,
+    alerts: list[dict] | None = None,
+    health_summary: dict | None = None,
     model: str = "google/gemini-2.5-flash",
     depth: str = "Orta",
 ) -> dict:
+    if args:
+        remaining = list(args)
+        if remaining and isinstance(remaining[0], dict):
+            brief = remaining.pop(0)
+        if remaining and isinstance(remaining[0], dict):
+            analytics = remaining.pop(0)
+        if remaining and isinstance(remaining[0], list):
+            alerts = remaining.pop(0)
+        if remaining and isinstance(remaining[0], dict):
+            health_summary = remaining.pop(0)
+        if remaining and isinstance(remaining[0], str):
+            model = remaining.pop(0)
+        if remaining and isinstance(remaining[0], str):
+            depth = remaining.pop(0)
+
+    brief = brief or {}
+    analytics = analytics or {}
+    alerts = alerts or []
+    health_summary = health_summary or {}
+
     prompt = build_strategy_report_prompt(
         data,
         brief=brief,
