@@ -1958,41 +1958,42 @@ def render_signal_deck(
     emphasis: str = "",
     emphasis_kind: str = "warn",
 ):
+    safe_chips = [chip for chip in (chips or []) if chip]
+    safe_context_rows = context_rows or []
     context_html = "".join(
         f"<div class='signal-context-item'><span class='signal-context-label'>{clean_text(label)}</span><span class='signal-context-value'>{display_value(value)}</span></div>"
-        for label, value in (context_rows or [])
+        for label, value in safe_context_rows
     )
     rows_html = "".join(
         f"<div class='signal-mini-row'><span>{clean_text(label)}</span><strong>{display_value(value)}</strong></div>"
         for label, value in rows
     )
-    chip_html = "".join(f"<span class='signal-chip'>{clean_text(chip)}</span>" for chip in (chips or []))
+    chip_html = "".join(f"<span class='signal-chip'>{clean_text(chip)}</span>" for chip in safe_chips)
     emphasis_html = (
         f"<div class='signal-deck-band signal-band-{clean_text(emphasis_kind)}'>{clean_text(emphasis)}</div>"
         if emphasis
         else ""
     )
     context_block = f"<div class='signal-context-grid'>{context_html}</div>" if context_html else ""
-    st.markdown(
-        f"""
-        <div class="signal-deck">
-            <div class="panel-kicker">{clean_text(kicker)}</div>
-            <div class="signal-deck-top">
-                <div class="signal-deck-title">{clean_text(title)}</div>
-                <div class="signal-deck-score">
-                    <strong>{clean_text(score_value)}</strong>
-                    <span>{clean_text(score_label)}</span>
-                </div>
-            </div>
-            <div class="signal-deck-copy">{clean_text(copy)}</div>
-            {emphasis_html}
-            <div class="signal-chip-row">{chip_html}</div>
-            {context_block}
-            <div class="signal-mini-list">{rows_html}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    chip_block = f"<div class='signal-chip-row'>{chip_html}</div>" if chip_html else ""
+    html = (
+        "<div class='signal-deck'>"
+        f"<div class='panel-kicker'>{clean_text(kicker)}</div>"
+        "<div class='signal-deck-top'>"
+        f"<div class='signal-deck-title'>{clean_text(title)}</div>"
+        "<div class='signal-deck-score'>"
+        f"<strong>{clean_text(score_value)}</strong>"
+        f"<span>{clean_text(score_label)}</span>"
+        "</div>"
+        "</div>"
+        f"<div class='signal-deck-copy'>{clean_text(copy)}</div>"
+        f"{emphasis_html}"
+        f"{chip_block}"
+        f"{context_block}"
+        f"<div class='signal-mini-list'>{rows_html}</div>"
+        "</div>"
     )
+    st.markdown(html, unsafe_allow_html=True)
 
 
 def render_breadth_surface(title: str, factor: dict, rows: list[tuple[str, object]], *, kicker: str, note: str = ""):
