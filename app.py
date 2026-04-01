@@ -1472,15 +1472,33 @@ FLOW_RISK_SECTIONS = [
         ],
     },
     {
-        "title": "Market Cap Breadth",
-        "kicker": "Breadth Layers",
-        "caption": "Sermayenin piyasa katmanlarina dagilimi.",
+        "title": "Crypto Participation Inputs",
+        "kicker": "Crypto Breadth Layers",
+        "caption": "Kripto katilimini olcmek icin kullanilan market cap katmanlari.",
         "rows": [
             ("TOTAL", "TOTAL_CAP"),
             ("TOTAL2", "TOTAL2_CAP"),
             ("TOTAL3", "TOTAL3_CAP"),
             ("OTHERS", "OTHERS_CAP"),
+            ("BTC Dominance", "Dom"),
+            ("ETH Dominance", "ETH_Dom"),
             ("Kaynak", "TOTAL_CAP_SOURCE"),
+        ],
+    },
+    {
+        "title": "Macro Participation Proxies",
+        "kicker": "ETF Breadth Proxies",
+        "caption": "Ucretsiz ve surdurulebilir macro breadth proxy seti.",
+        "rows": [
+            ("SPY", "SPY_C"),
+            ("RSP", "RSP_C"),
+            ("QQQ", "QQQ_C"),
+            ("IWM", "IWM_C"),
+            ("XLK", "XLK_C"),
+            ("XLF", "XLF_C"),
+            ("XLI", "XLI_C"),
+            ("XLE", "XLE_C"),
+            ("XLY", "XLY_C"),
         ],
     },
 ]
@@ -1489,10 +1507,11 @@ DATA_ATLAS_SECTIONS = [
     {"title": "BTC ve Kripto", "rows": [("BTC Fiyati", "BTC_P"), ("BTC 24s", "BTC_C"), ("BTC 7g", "BTC_7D"), ("BTC MCap", "BTC_MCap"), ("24s Hacim", "Vol_24h"), ("BTC Dominance", "Dom"), ("ETH Dominance", "ETH_Dom"), ("Total MCap", "TOTAL_CAP"), ("Total Hacim", "Total_Vol")]},
     {"title": "Turev ve Sentiment", "rows": [("OI", "OI"), ("Funding Rate", "FR"), ("Taker B/S", "Taker"), ("L/S Orani", "LS_Ratio"), ("Long %", "Long_Pct"), ("Short %", "Short_Pct"), ("L/S Sinyal", "LS_Signal"), ("Korku/Acgozluluk", "FNG"), ("FNG Dun", "FNG_PREV")]},
     {"title": "Order Book ve ETF", "rows": [("Destek Duvari", "Sup_Wall"), ("Destek Hacmi", "Sup_Vol"), ("Direnc Duvari", "Res_Wall"), ("Direnc Hacmi", "Res_Vol"), ("Tahta Durumu", "Wall_Status"), ("Birlesik Sinyal", "ORDERBOOK_SIGNAL"), ("Birlesik Detay", "ORDERBOOK_SIGNAL_DETAIL"), ("Kaynaklar", "ORDERBOOK_SOURCES"), ("ETF Netflow", "ETF_FLOW_TOTAL"), ("ETF Tarih", "ETF_FLOW_DATE"), ("ETF Kaynak", "ETF_FLOW_SOURCE"), ("OKX Destek", "OKX_Sup_Wall")]},
-    {"title": "Market Cap Breadth", "rows": [("TOTAL", "TOTAL_CAP"), ("TOTAL2", "TOTAL2_CAP"), ("TOTAL3", "TOTAL3_CAP"), ("OTHERS", "OTHERS_CAP"), ("Kaynak", "TOTAL_CAP_SOURCE")]},
+    {"title": "Crypto Participation Inputs", "rows": [("TOTAL", "TOTAL_CAP"), ("TOTAL2", "TOTAL2_CAP"), ("TOTAL3", "TOTAL3_CAP"), ("OTHERS", "OTHERS_CAP"), ("BTC Dominance", "Dom"), ("ETH Dominance", "ETH_Dom"), ("Kaynak", "TOTAL_CAP_SOURCE")]},
     {"title": "Stablecoin ve On-Chain", "rows": [("Toplam Stable", "Total_Stable"), ("USDT", "USDT_MCap"), ("USDC", "USDC_MCap"), ("DAI", "DAI_MCap"), ("Stable.C.D", "STABLE_C_D"), ("USDT.D", "USDT_D"), ("USDT Dom Stable", "USDT_Dom_Stable"), ("Hashrate", "Hash"), ("Aktif Adres", "Active")]},
     {"title": "Makro ve Para Politikasi", "rows": [("FED Faizi", "FED"), ("M2 YoY", "M2"), ("ABD 10Y", "US10Y"), ("DXY", "DXY"), ("VIX", "VIX"), ("BTC<>SP500", "Corr_SP500"), ("BTC<>Altin", "Corr_Gold")]},
     {"title": "Endeksler ve Emtia", "rows": [("S&P 500", "SP500"), ("NASDAQ", "NASDAQ"), ("DAX", "DAX"), ("NIKKEI", "NIKKEI"), ("BIST100", "BIST100"), ("Altin", "GOLD"), ("Gumus", "SILVER"), ("Petrol", "OIL"), ("Dogalgaz", "NATGAS"), ("Bakir", "COPPER")]},
+    {"title": "Macro Participation Proxies", "rows": [("SPY", "SPY_C"), ("RSP", "RSP_C"), ("QQQ", "QQQ_C"), ("IWM", "IWM_C"), ("XLK", "XLK_C"), ("XLF", "XLF_C"), ("XLI", "XLI_C"), ("XLE", "XLE_C"), ("XLY", "XLY_C")]},
     {"title": "Forex", "rows": [("EUR/USD", "EURUSD"), ("GBP/USD", "GBPUSD"), ("USD/JPY", "USDJPY"), ("USD/TRY", "USDTRY"), ("USD/CHF", "USDCHF"), ("AUD/USD", "AUDUSD")]},
 ]
 
@@ -1792,6 +1811,28 @@ def render_signal_deck(
         </div>
         """,
         unsafe_allow_html=True,
+    )
+
+
+def render_breadth_surface(title: str, factor: dict, rows: list[tuple[str, object]], *, kicker: str, note: str = ""):
+    delta_text, _ = score_delta_meta(factor["delta_7d"])
+    chips = [
+        factor["state"],
+        f"Weight {int(round(factor['weight'] * 100))}%",
+        delta_text,
+        f"Driver {factor['primary_support']}" if factor.get("primary_support") else "",
+        f"Risk {factor['primary_risk']}" if factor.get("primary_risk") else "",
+    ]
+    if factor.get("proxy_note"):
+        chips.append("proxy-based")
+    render_signal_deck(
+        kicker,
+        title,
+        note or factor["summary"],
+        rows,
+        score_value=f"{factor['score']}/100",
+        score_label=factor.get("confidence_label", ""),
+        chips=[chip for chip in chips if chip],
     )
 
 
@@ -2159,6 +2200,9 @@ def render_all_metrics_tab(data: dict):
 def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[dict], health_summary: dict):
     scores = analytics["scores"]
     factors = {factor["key"]: factor for factor in scores["factors"]}
+    participation = scores["participation"]
+    macro_breadth = participation["subfactors"]["macro"]
+    crypto_breadth = participation["subfactors"]["crypto"]
 
     st.markdown("<div class='table-section-title'>Terminal</div>", unsafe_allow_html=True)
     st.markdown(
@@ -2207,16 +2251,16 @@ def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[d
             chips=[factor["state"], f"Weight {factor['weight_pct']}%", delta_text, factor["primary_risk"]],
         )
     with deck_cols[2]:
-        factor = factors["breadth"]
+        factor = factors["participation"]
         delta_text, _ = score_delta_meta(factor["delta_7d"])
         render_signal_deck(
-            "Breadth Deck",
-            "Participation Quality",
+            "Composite Participation",
+            "Cross-Asset Participation",
             factor["summary"],
             [
-                ("TOTAL2", data.get("TOTAL2_CAP", "-")),
-                ("TOTAL3", data.get("TOTAL3_CAP", "-")),
-                ("BTC Dom", data.get("Dom", "-")),
+                ("Macro Breadth", f"{macro_breadth['score']}/100"),
+                ("Crypto Breadth", f"{crypto_breadth['score']}/100"),
+                ("Alignment", f"Gap {abs(macro_breadth['score'] - crypto_breadth['score'])}"),
             ],
             score_value=f"{factor['score']}/100",
             score_label=factor["confidence_label"],
@@ -2238,6 +2282,33 @@ def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[d
         )
 
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    breadth_left, breadth_right = st.columns(2)
+    with breadth_left:
+        render_breadth_surface(
+            "Macro Breadth",
+            macro_breadth,
+            [
+                ("RSP vs SPY", f"{display_value(data.get('RSP_C'))} vs {display_value(data.get('SPY_C'))}"),
+                ("IWM vs SPY", f"{display_value(data.get('IWM_C'))} vs {display_value(data.get('SPY_C'))}"),
+                ("Sectors", "XLK | XLF | XLI | XLE | XLY"),
+            ],
+            kicker="Participation Layer",
+            note="Macro breadth genel risk katiliminin mega-cap disina, small-cap ve sektor ETF'lere yayilip yayilmadigini olcer.",
+        )
+    with breadth_right:
+        render_breadth_surface(
+            "Crypto Breadth",
+            crypto_breadth,
+            [
+                ("TOTAL2", data.get("TOTAL2_CAP", "-")),
+                ("TOTAL3", data.get("TOTAL3_CAP", "-")),
+                ("OTHERS / BTC Dom", f"{display_value(data.get('OTHERS_CAP'))} | {display_value(data.get('Dom'))}"),
+            ],
+            kicker="Participation Layer",
+            note="Crypto breadth BTC disi katilim, alt katman yayilimi ve dominance konsantrasyonunu birlikte okur.",
+        )
+
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
     lower_left, lower_right = st.columns([1.08, 0.92])
     with lower_left:
         render_scenario_matrix(analytics)
@@ -2255,17 +2326,22 @@ def render_macro_tab(data: dict):
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
     render_table_row(data, MACRO_MARKET_SECTIONS[3:5], 2)
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
-    render_table_row(data, MACRO_MARKET_SECTIONS[5:], 3)
+    render_table_row(data, MACRO_MARKET_SECTIONS[5:8], 3)
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    render_table_row(data, MACRO_MARKET_SECTIONS[8:], 1)
 
 
 def render_flow_risk_tab(data: dict, health_summary: dict):
     st.markdown("<div class='table-section-title'>Flow and Risk Surfaces</div>", unsafe_allow_html=True)
     st.markdown(
-        "<div class='table-section-copy'>Bu ekran ham veri tablosu degil; positioning, liquidity, breadth ve execution katmanlarini once yorumlar, sonra detay yuzeylerine iner.</div>",
+        "<div class='table-section-copy'>Bu ekran ham veri tablosu degil; positioning, liquidity, macro breadth, crypto breadth ve execution katmanlarini once yorumlar, sonra detay yuzeylerine iner.</div>",
         unsafe_allow_html=True,
     )
     scores = build_analytics_payload(data)["scores"]
     factors = {factor["key"]: factor for factor in scores["factors"]}
+    participation = scores["participation"]
+    macro_breadth = participation["subfactors"]["macro"]
+    crypto_breadth = participation["subfactors"]["crypto"]
     top_cols = st.columns(2)
     with top_cols[0]:
         factor = factors["positioning"]
@@ -2292,20 +2368,24 @@ def render_flow_risk_tab(data: dict, health_summary: dict):
             chips=[delta_text, factor["primary_risk"], f"Weight {factor['weight_pct']}%"],
         )
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
-    mid_cols = st.columns(2)
+    mid_cols = st.columns(3)
     with mid_cols[0]:
-        factor = factors["breadth"]
-        delta_text, _ = score_delta_meta(factor["delta_7d"])
-        render_signal_deck(
-            "Breadth",
-            factor["state"],
-            factor["summary"],
-            [("TOTAL2", data.get("TOTAL2_CAP", "-")), ("TOTAL3", data.get("TOTAL3_CAP", "-")), ("OTHERS", data.get("OTHERS_CAP", "-")), ("BTC Dom", data.get("Dom", "-"))],
-            score_value=f"{factor['score']}/100",
-            score_label=factor["confidence_label"],
-            chips=[delta_text, factor["primary_risk"], f"Weight {factor['weight_pct']}%"],
+        render_breadth_surface(
+            "Macro Breadth",
+            macro_breadth,
+            [("RSP", data.get("RSP_C", "-")), ("IWM", data.get("IWM_C", "-")), ("QQQ", data.get("QQQ_C", "-")), ("Sectors", "XLK | XLF | XLI | XLE | XLY")],
+            kicker="Breadth",
+            note="Makro katilim burada ETF proxy'leri ile olculur; mega-cap disi katilim guclenirse skor yukselir.",
         )
     with mid_cols[1]:
+        render_breadth_surface(
+            "Crypto Breadth",
+            crypto_breadth,
+            [("TOTAL2", data.get("TOTAL2_CAP", "-")), ("TOTAL3", data.get("TOTAL3_CAP", "-")), ("OTHERS", data.get("OTHERS_CAP", "-")), ("BTC Dom", data.get("Dom", "-"))],
+            kicker="Breadth",
+            note="Crypto breadth BTC disi katilim ve dominance yogunlasmasi ile birlikte okunur.",
+        )
+    with mid_cols[2]:
         render_signal_deck(
             "Execution",
             display_value(data.get("ORDERBOOK_SIGNAL", "-")),
@@ -2315,6 +2395,16 @@ def render_flow_risk_tab(data: dict, health_summary: dict):
             score_label="spot",
             chips=[display_value(data.get("ORDERBOOK_SIGNAL_BADGE", "-"), fallback="watch"), display_value(data.get("ORDERBOOK_SIGNAL_CLASS", "-"), fallback="neutral")],
         )
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    render_signal_deck(
+        "Composite Participation",
+        participation["state"],
+        participation["summary"],
+        [("Macro Breadth", f"{macro_breadth['score']}/100"), ("Crypto Breadth", f"{crypto_breadth['score']}/100"), ("Alignment Gap", abs(macro_breadth["score"] - crypto_breadth["score"]))],
+        score_value=f"{participation['score']}/100",
+        score_label=participation["confidence_label"],
+        chips=[f"Weight {participation['weight_pct']}%", participation["primary_risk"], score_delta_meta(participation["delta_7d"])[0]],
+    )
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
     render_source_health_surface(
         "Turev Kaynak Durumu",
