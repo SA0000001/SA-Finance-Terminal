@@ -1,4 +1,4 @@
-name: Daily Macro Bulletin
+name: Daily Macro Bulten
 
 on:
   schedule:
@@ -8,7 +8,7 @@ on:
       report_depth:
         description: "Makro Bulten derinligi"
         required: false
-        default: "Orta"
+        default: "Derin"
         type: choice
         options:
           - Kisa
@@ -51,5 +51,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Send Telegram Macro Bulletin
+      - name: Send Telegram Macro Bulten
         run: python notify.py
