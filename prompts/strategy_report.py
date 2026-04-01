@@ -107,12 +107,17 @@ def _format_factor_lines(scores: dict) -> str:
 
 def build_strategy_report_prompt(
     data,
-    brief: dict,
-    analytics: dict,
-    alerts: list[dict],
-    health_summary: dict,
+    brief: dict | None = None,
+    analytics: dict | None = None,
+    alerts: list[dict] | None = None,
+    health_summary: dict | None = None,
     depth: str = "Orta",
 ):
+    data = data or {}
+    brief = brief or {}
+    analytics = analytics or {}
+    alerts = alerts or []
+    health_summary = health_summary or {}
     rules = DEPTH_RULES.get(depth, DEPTH_RULES["Orta"])
     now_text = pd.Timestamp.now(tz="Europe/Istanbul").strftime("%d %B %Y %H:%M")
     scores = analytics.get("scores", {})
