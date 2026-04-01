@@ -16,7 +16,7 @@ from services.preferences import DEFAULT_PREFERENCES, load_preferences
 
 DEFAULT_MODEL = "google/gemini-2.5-flash"
 DEFAULT_DEPTH = "Orta"
-TELEGRAM_MESSAGE_LIMIT = 6000
+TELEGRAM_MESSAGE_LIMIT = 2800
 ISTANBUL_TZ = ZoneInfo("Europe/Istanbul")
 
 
@@ -144,7 +144,7 @@ def format_terminal_report_for_telegram(report_text: str) -> str:
             formatted_lines.append(f"*{line[4:].strip()}*")
             continue
         if line.startswith("- "):
-            formatted_lines.append(f"• {line[2:].strip()}")
+            formatted_lines.append(f"- {line[2:].strip()}")
             continue
         formatted_lines.append(line)
 
@@ -154,27 +154,28 @@ def format_terminal_report_for_telegram(report_text: str) -> str:
     return text
 
 
-def split_telegram_message(text: str, limit: int = TELEGRAM_MESSAGE_LIMIT) -> list[str]:
+def split_telegram_message(text: str, limit: int = TELEGRAM_MESSAGE_LIMIT, reserved: int = 0) -> list[str]:
     remaining = (text or "").strip()
     if not remaining:
         return []
 
+    chunk_limit = max(1, limit - max(reserved, 0))
     parts = []
     while remaining:
-        if len(remaining) <= limit:
+        if len(remaining) <= chunk_limit:
             parts.append(remaining)
             break
-        split_at = remaining.rfind("\n\n", 0, limit)
+        split_at = remaining.rfind("\n\n", 0, chunk_limit)
         if split_at == -1:
-            split_at = remaining.rfind("\n", 0, limit)
+            split_at = remaining.rfind("\n", 0, chunk_limit)
         if split_at == -1:
-            split_at = limit
+            split_at = chunk_limit
         parts.append(remaining[:split_at].strip())
         remaining = remaining[split_at:].strip()
     return parts
 
 
-def send_telegram_text(token: str, chat_id: str, text: str, *, prefer_markdown: bool = True):
+def send_telegram_text(token: str, chat_id: str, text: str, *, prefer_markdown: bool = True) -> dict:
     payload = {
         "chat_id": chat_id,
         "text": text,
@@ -185,27 +186,71 @@ def send_telegram_text(token: str, chat_id: str, text: str, *, prefer_markdown: 
     if prefer_markdown:
         response = requests.post(url, json={**payload, "parse_mode": "Markdown"}, timeout=15)
         if response.ok:
-            return
+            return response.json().get("result", {})
 
     fallback = requests.post(url, json=payload, timeout=15)
     if fallback.ok:
-        return
+        return fallback.json().get("result", {})
     raise RuntimeError(f"Telegram sendMessage failed: {fallback.text}")
 
 
+def delete_telegram_message(token: str, chat_id: str, message_id: int) -> bool:
+    url = f"https://api.telegram.org/bot{token}/deleteMessage"
+    response = requests.post(url, json={"chat_id": chat_id, "message_id": message_id}, timeout=15)
+    return response.ok
+
+
+def build_failure_notification(error_text: str, now: datetime | None = None) -> str:
+    now = now or datetime.now(ISTANBUL_TZ)
+    lowered = error_text.lower()
+    if "message is too long" in lowered:
+        reason = "Telegram mesaj limiti asildi."
+    else:
+        reason = error_text.replace("\n", " ").strip()[:180]
+    return "\n".join(
+        [
+            "Gunluk Makro Bulten gonderilemedi.",
+            now.strftime("%d.%m.%Y %H:%M TRT"),
+            f"Neden: {reason}",
+        ]
+    )
+
+
 def send_daily_bulletin(token: str, chat_id: str, summary_text: str, terminal_report: str):
-    send_telegram_text(token, chat_id, summary_text, prefer_markdown=True)
-
     report_text = format_terminal_report_for_telegram(terminal_report)
-    report_parts = split_telegram_message(report_text)
+    report_parts = split_telegram_message(report_text, reserved=32)
     total_parts = len(report_parts)
+    sent_message_ids: list[int] = []
 
-    for index, part in enumerate(report_parts, start=1):
-        if total_parts > 1:
-            header = f"*Makro Bulten {index}/{total_parts}*\n\n"
-        else:
-            header = "*Makro Bulten*\n\n"
-        send_telegram_text(token, chat_id, f"{header}{part}", prefer_markdown=True)
+    if not report_parts:
+        failure_note = build_failure_notification("Makro Bulten bos uretildi.")
+        send_telegram_text(token, chat_id, failure_note, prefer_markdown=False)
+        raise RuntimeError("Makro Bulten bos uretildi.")
+
+    try:
+        for index, part in enumerate(report_parts, start=1):
+            if total_parts > 1:
+                header = f"*Makro Bulten {index}/{total_parts}*\n\n"
+            else:
+                header = "*Makro Bulten*\n\n"
+            result = send_telegram_text(token, chat_id, f"{header}{part}", prefer_markdown=True)
+            message_id = result.get("message_id") if isinstance(result, dict) else None
+            if isinstance(message_id, int):
+                sent_message_ids.append(message_id)
+
+        send_telegram_text(token, chat_id, summary_text, prefer_markdown=True)
+    except Exception as exc:
+        for message_id in reversed(sent_message_ids):
+            try:
+                delete_telegram_message(token, chat_id, message_id)
+            except Exception:
+                pass
+        failure_note = build_failure_notification(str(exc))
+        try:
+            send_telegram_text(token, chat_id, failure_note, prefer_markdown=False)
+        except Exception:
+            pass
+        raise
 
 
 def main():
