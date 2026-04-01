@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
+from urllib.parse import urlsplit
 
 
 def utc_now_iso() -> str:
@@ -94,10 +96,14 @@ def merge_source_health(previous: dict[str, dict] | None, latest: dict[str, dict
 
         if entry.get("ok"):
             merged_entry["last_success_at"] = (
-                entry.get("last_success_at") or entry.get("fetched_at") or previous.get(source, {}).get("last_success_at")
+                entry.get("last_success_at")
+                or entry.get("fetched_at")
+                or previous.get(source, {}).get("last_success_at")
             )
         else:
-            merged_entry["last_success_at"] = entry.get("last_success_at") or previous.get(source, {}).get("last_success_at")
+            merged_entry["last_success_at"] = entry.get("last_success_at") or previous.get(source, {}).get(
+                "last_success_at"
+            )
 
         merged_entry["stale"] = is_stale(merged_entry, now)
         merged[source] = merged_entry
@@ -110,6 +116,38 @@ def _format_timestamp(value: str | None) -> str:
     if parsed is None:
         return "Never"
     return parsed.astimezone().strftime("%d.%m %H:%M:%S")
+
+
+_SENSITIVE_QUERY_RE = re.compile(r"([?&](?:api_key|apikey|token|access_token|key)=)[^&\s]+", re.IGNORECASE)
+_URL_RE = re.compile(r"https?://[^\s]+", re.IGNORECASE)
+
+
+def _shorten_url(url: str) -> str:
+    try:
+        parsed = urlsplit(url)
+    except ValueError:
+        return url
+    path = parsed.path or ""
+    return f"{parsed.netloc}{path}"
+
+
+def _format_error_for_display(source: str, error: str | None) -> str:
+    text = (error or "").strip()
+    if not text:
+        return "-"
+
+    lowered = text.lower()
+    if source == "TradingView Market Cap" and "market cap not found" in lowered:
+        return "TradingView market cap metni parse edilemedi; CoinGecko fallback kullaniliyor."
+    if source == "FairEconomy Calendar" and "429" in lowered:
+        return "FairEconomy Calendar oran sinirina takildi (429); takvim gecici olarak kullanilamiyor."
+    if source.startswith("FRED") and "500" in lowered:
+        return "FRED gecici sunucu hatasi (500); son basarili veri korunuyor."
+
+    text = _SENSITIVE_QUERY_RE.sub(r"\1[redacted]", text)
+    text = _URL_RE.sub(lambda match: _shorten_url(match.group(0)), text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
 
 
 def build_health_summary(health_state: dict[str, dict]) -> dict:
@@ -133,7 +171,7 @@ def build_health_summary(health_state: dict[str, dict]) -> dict:
                 "Durum": status,
                 "Gecikme": f"{entry['latency_ms']:.0f} ms" if entry.get("latency_ms") is not None else "-",
                 "Son basarili": _format_timestamp(entry.get("last_success_at")),
-                "Hata": entry.get("error", "") or "-",
+                "Hata": _format_error_for_display(source, entry.get("error", "")),
             }
         )
 
