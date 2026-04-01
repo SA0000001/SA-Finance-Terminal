@@ -143,6 +143,87 @@ def _confidence_label(score: int) -> str:
     return "Low confidence"
 
 
+def _regime_confidence_score(factors: dict[str, dict], overall: int, fragility: dict, invalidate_conditions: list[str]) -> int:
+    data_confidence = sum(factor["confidence"] * factor["weight"] for factor in factors.values())
+    dominant_factor = max(factors.values(), key=lambda factor: factor["contribution"])
+    weakest_factor = min(factors.values(), key=lambda factor: factor["score"])
+    participation = factors["participation"]
+    macro_breadth = participation["subfactors"]["macro"]["score"]
+    crypto_breadth = participation["subfactors"]["crypto"]["score"]
+    alignment_gap = abs(macro_breadth - crypto_breadth)
+
+    regime_clarity = clamp_score((abs(overall - 50) * 1.25) + ((dominant_factor["score"] - weakest_factor["score"]) * 0.28))
+    driver_strength = clamp_score(((dominant_factor["score"] - 50) * 1.35) + ((dominant_factor["contribution"] / dominant_factor["weight"]) - 45))
+    alignment_score = clamp_score(100 - (alignment_gap * 3.4))
+    stability_mix = clamp_score((factors["volatility"]["score"] * 0.58) + (factors["positioning"]["score"] * 0.42))
+
+    raw_score = (
+        (data_confidence * 0.24)
+        + (regime_clarity * 0.18)
+        + (driver_strength * 0.12)
+        + (alignment_score * 0.14)
+        + (stability_mix * 0.20)
+        + (factors["liquidity"]["score"] * 0.12)
+    )
+
+    weakest_penalty = max(0.0, (56 - weakest_factor["score"]) * 0.58)
+    fragility_penalty = max(0.0, (fragility["score"] - 22) * 0.56)
+    crowding_penalty = max(0.0, (62 - factors["positioning"]["score"]) * 0.44)
+    volatility_penalty = max(0.0, (60 - factors["volatility"]["score"]) * 0.26)
+    alignment_penalty = max(0.0, (alignment_gap - 12) * 0.45)
+    invalidate_penalty = max(0.0, len(invalidate_conditions) - 1) * 4.5
+    invalidate_proximity_penalty = 0.0
+    if factors["liquidity"]["score"] < 58:
+        invalidate_proximity_penalty += 3.0
+    if factors["volatility"]["score"] < 60:
+        invalidate_proximity_penalty += 3.0
+    if factors["positioning"]["score"] < 58:
+        invalidate_proximity_penalty += 4.0
+    if macro_breadth < 55:
+        invalidate_proximity_penalty += 2.0
+    if crypto_breadth < 55:
+        invalidate_proximity_penalty += 2.0
+    if alignment_gap >= 18:
+        invalidate_proximity_penalty += 2.5
+
+    calibrated = (
+        raw_score
+        - weakest_penalty
+        - fragility_penalty
+        - crowding_penalty
+        - volatility_penalty
+        - alignment_penalty
+        - invalidate_penalty
+        - invalidate_proximity_penalty
+    )
+
+    cap = 84
+    if overall < 72:
+        cap = 80
+    if overall < 62:
+        cap = 74
+    if weakest_factor["score"] < 56 or fragility["score"] >= 38:
+        cap = min(cap, 70)
+    if factors["positioning"]["score"] < 56 or alignment_gap >= 18:
+        cap = min(cap, 66)
+    if fragility["score"] >= 55 or factors["positioning"]["score"] < 48 or weakest_factor["score"] < 48:
+        cap = min(cap, 58)
+    if fragility["score"] >= 70 or factors["positioning"]["score"] < 40 or weakest_factor["score"] < 40:
+        cap = min(cap, 48)
+
+    return clamp_score(min(calibrated, cap))
+
+
+def _regime_confidence_label(score: int, fragility_score: int) -> str:
+    if fragility_score >= 65 or score < 30:
+        return "Fragile confidence"
+    if fragility_score >= 45 or score < 55:
+        return "Conditional confidence"
+    if score < 74:
+        return "Moderate confidence"
+    return "High confidence"
+
+
 def _build_liquidity_factor(data: dict) -> dict:
     dxy = parse_number(data.get("DXY"))
     dxy_change = parse_number(data.get("DXY_C"))
@@ -590,9 +671,6 @@ def build_regime_scores(data: dict) -> dict:
     else:
         overlay = regime_band
 
-    confidence = clamp_score(
-        sum(factor["confidence"] * factor["weight"] for factor in factors.values())
-    )
     if overall >= 75 and fragility["score"] <= 40:
         bias = "Risk alimi destekleniyor; momentum genis tabanli kaliyor."
     elif overall >= 60 and fragility["score"] <= 60:
@@ -624,6 +702,8 @@ def build_regime_scores(data: dict) -> dict:
     if not invalidate_conditions:
         invalidate_conditions.append("Belirgin invalidate kosulu yok; mevcut rejim saglikli gorunuyor.")
 
+    confidence = _regime_confidence_score(factors, overall, fragility, invalidate_conditions)
+
     watch_next = [
         f"ETF akisi {data.get('ETF_FLOW_TOTAL', PLACEHOLDER)} ve DXY {data.get('DXY', PLACEHOLDER)}",
         f"Funding {data.get('FR', PLACEHOLDER)} | L/S {data.get('LS_Ratio', PLACEHOLDER)} | Taker {data.get('Taker', PLACEHOLDER)}",
@@ -642,7 +722,7 @@ def build_regime_scores(data: dict) -> dict:
         "weakest_driver": weakest_driver["label"],
         "summary": f"{dominant_driver['label']} rejimi tasiyor, {weakest_driver['label']} ise en zayif halka.",
         "confidence": confidence,
-        "confidence_label": _confidence_label(confidence),
+        "confidence_label": _regime_confidence_label(confidence, fragility["score"]),
         "bias": bias,
         "invalidate_conditions": invalidate_conditions[:3],
         "watch_next": watch_next,
