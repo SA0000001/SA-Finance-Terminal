@@ -34,6 +34,21 @@ def display_value(value, fallback: str = "Veri bekleniyor") -> str:
     return fallback if is_missing(value) else clean_text(value)
 
 
+def delta_tone_class(delta: str) -> str:
+    cleaned = clean_text(delta).strip()
+    if cleaned in {PLACEHOLDER, "", "None"}:
+        return "data-delta-neutral"
+    try:
+        raw = float(cleaned.replace("%", "").replace(",", ".").strip())
+    except ValueError:
+        return "data-delta-neutral"
+    if raw > 0:
+        return "data-delta-pos"
+    if raw < 0:
+        return "data-delta-neg"
+    return "data-delta-neutral"
+
+
 def mcard(label: str, value: str, delta: str = "", accent_color: str = "--accent", compact: bool = False):
     value_missing = is_missing(value)
     value = display_value(value)
@@ -161,24 +176,42 @@ def render_health_bar(health_summary: dict):
     )
 
 
-def render_data_table_card(title: str, rows, kicker: str = "", caption: str = ""):
+def build_data_table_card_html(title: str, rows, kicker: str = "", caption: str = "", show_delta: bool = False) -> str:
     kicker_html = f"<div class='table-kicker'>{clean_text(kicker)}</div>" if kicker else ""
     caption_html = f"<div class='table-caption'>{clean_text(caption)}</div>" if caption else ""
-    rows_html = "".join(
-        f"<div class='data-row'><div class='data-key'>{clean_text(label)}</div><div class='data-value'>{display_value(value)}</div></div>"
-        for label, value in rows
-    )
-    html = (
+    if show_delta:
+        rows_html = "".join(
+            (
+                f"<div class='data-row data-row-with-delta'>"
+                f"<div class='data-key'>{clean_text(label)}</div>"
+                f"<div class='data-value'>{display_value(value)}</div>"
+                f"<div class='data-delta {delta_tone_class(delta)}'>{clean_text(delta)}</div>"
+                f"</div>"
+            )
+            for label, value, delta in rows
+        )
+        grid_head_html = "<div class='data-grid-head data-grid-head-with-delta'><span>Metrik</span><span>Deger</span><span>Gunluk %</span></div>"
+    else:
+        rows_html = "".join(
+            f"<div class='data-row'><div class='data-key'>{clean_text(label)}</div><div class='data-value'>{display_value(value)}</div></div>"
+            for label, value in rows
+        )
+        grid_head_html = "<div class='data-grid-head'><span>Metrik</span><span>Deger</span></div>"
+    return (
         f"<div class='data-card'>"
         f"<div class='data-card-head'>"
         f"{kicker_html}"
         f"<div class='table-title'>{clean_text(title)}</div>"
         f"{caption_html}"
         f"</div>"
-        f"<div class='data-grid-head'><span>Metrik</span><span>Deger</span></div>"
+        f"{grid_head_html}"
         f"<div class='data-rows'>{rows_html}</div>"
         f"</div>"
     )
+
+
+def render_data_table_card(title: str, rows, kicker: str = "", caption: str = "", show_delta: bool = False):
+    html = build_data_table_card_html(title, rows, kicker=kicker, caption=caption, show_delta=show_delta)
     st.markdown(
         html,
         unsafe_allow_html=True,
