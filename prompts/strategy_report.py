@@ -267,7 +267,7 @@ Ek kurallar:
 - Invalidation bolumunde ne olursa gorusun bozulacagini net soyle.
 - "Gunluk Harita ve Ana Cikarim" bolumunde rejim, dominant driver, weakest link ve gunun temel davranis cizgisi ilk 5-6 satirda verilmis olsun.
 - "Long / Short / Bekle ve Kritik Riskler" bolumunde su uc kalip zorunlu: long icin anlamli kosul, short icin anlamli kosul, beklemek icin anlamli kosul.
-- "Makro Ortam ve Risk Istahi" bolumunde DXY, US10Y, VIX, SP500, NASDAQ ve mumkunse DAX, NIKKEI, GOLD, SILVER, OIL verilerini somut sayilarla kullan.
+- "Makro Ortam ve Risk Istahi" bolumunde mutlaka DXY, US10Y, VIX, SP500, NASDAQ ve DAX, NIKKEI, GOLD, SILVER, OIL verilerini somut sayilarla kullan.
 - "BTC, Turev ve Order Book Analizi" bolumunde BTC 24s ve 7g hareketini, funding/OI/L-S/Taker verileriyle birlestir; kaldirac yogunlugu ve squeeze riskine yorum getir.
 - "ETF, Stablecoin ve Altcoinler" bolumunde ETF akisi, stablecoin buyuklugu ve altcoinlerin 24s/7g performansini BTC ile goreli kiyaslayarak yaz.
 - "Macro Breadth ve Crypto Breadth" bolumunde skor tekrari yapmak yerine katilimin genis mi dar mi oldugunu, BTC disina yayilim olup olmadigini ve uyum/ayrisma durumunu anlat.
