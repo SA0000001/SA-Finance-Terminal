@@ -1399,6 +1399,14 @@ html, body, [data-testid="stAppViewContainer"] {
     text-align: right;
 }
 
+.data-grid-head-with-delta {
+    grid-template-columns: minmax(0, 1fr) minmax(110px, 0.82fr) minmax(86px, 0.58fr);
+}
+
+.data-grid-head-with-delta span:last-child {
+    text-align: right;
+}
+
 .data-rows {
     display: grid;
 }
@@ -1420,6 +1428,10 @@ html, body, [data-testid="stAppViewContainer"] {
     background: rgba(255, 255, 255, 0.02);
 }
 
+.data-row-with-delta {
+    grid-template-columns: minmax(0, 1fr) minmax(110px, 0.82fr) minmax(86px, 0.58fr);
+}
+
 .data-key {
     color: var(--text-soft);
     font-size: 0.88rem;
@@ -1433,6 +1445,26 @@ html, body, [data-testid="stAppViewContainer"] {
     font-weight: 650;
     text-align: right;
     word-break: break-word;
+}
+
+.data-delta {
+    font-size: 0.84rem;
+    line-height: 1.55;
+    font-weight: 650;
+    text-align: right;
+    font-family: var(--mono);
+}
+
+.data-delta-pos {
+    color: var(--green);
+}
+
+.data-delta-neg {
+    color: var(--red);
+}
+
+.data-delta-neutral {
+    color: var(--muted);
 }
 
 .table-section-title {
@@ -1782,8 +1814,15 @@ DERIVATIVE_SOURCE_NAMES = [
 ]
 
 
-def data_rows(data: dict, items):
-    return [(label, data.get(key, "-")) for label, key in items]
+def data_rows(data: dict, items, *, include_change: bool = False):
+    rows = []
+    for label, key in items:
+        value = data.get(key, "-")
+        if include_change:
+            rows.append((label, value, data.get(f"{key}_C", "-")))
+        else:
+            rows.append((label, value))
+    return rows
 
 
 def section_variant(section: dict, **overrides) -> dict:
@@ -1792,15 +1831,16 @@ def section_variant(section: dict, **overrides) -> dict:
     return updated
 
 
-def render_table_row(data: dict, sections: list[dict], cols: int):
+def render_table_row(data: dict, sections: list[dict], cols: int, *, include_change: bool = False):
     columns = st.columns(cols)
     for column, section in zip(columns, sections):
         with column:
             render_data_table_card(
                 section["title"],
-                data_rows(data, section["rows"]),
+                data_rows(data, section["rows"], include_change=include_change),
                 kicker=section.get("kicker", ""),
                 caption=section.get("caption", ""),
+                show_delta=include_change,
             )
 
 
@@ -2616,7 +2656,7 @@ def render_overview_tab(data: dict, brief: dict, analytics: dict, alerts: list[d
         render_catalyst_stream(data, analytics, alerts, health_summary)
 
 
-def render_macro_tab(data: dict):
+def _legacy_render_macro_tab(data: dict):
     st.markdown(f"<div class='table-section-title'>{clean_text(bi_label('Macro and Markets', 'Makro ve Piyasalar'))}</div>", unsafe_allow_html=True)
     st.markdown(
         "<div class='table-section-copy'>Bu sekme sadece makro risk context ve cross-asset okunusu tasir.</div>",
@@ -2631,6 +2671,7 @@ def render_macro_tab(data: dict):
             section_variant(MACRO_MARKET_SECTIONS[7], caption=""),
         ],
         3,
+        include_change=True,
     )
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='table-section-copy'>Cross-Asset / Commodities</div>", unsafe_allow_html=True)
@@ -2642,6 +2683,7 @@ def render_macro_tab(data: dict):
             section_variant(MACRO_MARKET_SECTIONS[4], caption=""),
         ],
         3,
+        include_change=True,
     )
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='table-section-copy'>FX and Local Context</div>", unsafe_allow_html=True)
@@ -2652,10 +2694,11 @@ def render_macro_tab(data: dict):
             section_variant(MACRO_MARKET_SECTIONS[6], caption=""),
         ],
         2,
+        include_change=True,
     )
 
 
-def render_crypto_tab(data: dict):
+def _legacy_render_crypto_tab(data: dict):
     st.markdown(f"<div class='table-section-title'>{clean_text(bi_label('Crypto', 'Kripto'))}</div>", unsafe_allow_html=True)
     st.markdown(
         "<div class='table-section-copy'>Kriptoya ozel radar burada; ustte fiyat akis, altta BTC'ye gore daha kompakt relatif okuma var.</div>",
@@ -2826,6 +2869,7 @@ def render_macro_tab(data: dict):
             section_variant(MACRO_MARKET_SECTIONS[7], caption=""),
         ],
         3,
+        include_change=True,
     )
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='table-section-copy'>Cross-Asset / Commodities</div>", unsafe_allow_html=True)
@@ -2837,6 +2881,7 @@ def render_macro_tab(data: dict):
             section_variant(MACRO_MARKET_SECTIONS[4], caption=""),
         ],
         3,
+        include_change=True,
     )
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='table-section-copy'>FX and Local Context</div>", unsafe_allow_html=True)
@@ -2847,6 +2892,7 @@ def render_macro_tab(data: dict):
             section_variant(MACRO_MARKET_SECTIONS[6], caption=""),
         ],
         2,
+        include_change=True,
     )
 
 
