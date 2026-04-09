@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 import requests
 import streamlit as st
+import streamlit.runtime as st_runtime
 import yfinance as yf
 
 from domain.parsers import parse_number
@@ -13,7 +14,11 @@ from services.health import HealthRecorder
 from services.http_utils import FetchError, safe_fetch_json, safe_fetch_text
 
 HEADERS = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
-ETF_FLOW_COLUMNS = ("IBIT", "FBTC", "BITB", "ARKB", "BTCO", "EZBC", "BRRR", "HODL", "BTCW", "GBTC", "BTC", "TOTAL")
+ETF_FLOW_COLUMNS = ("IBIT", "FBTC", "BITB", "ARKB", "BTCO", "EZBC", "BRRR", "HODL", "BTCW", "MSBT", "GBTC", "BTC", "TOTAL")
+ETF_FLOW_LAYOUTS = (
+    ETF_FLOW_COLUMNS,
+    tuple(symbol for symbol in ETF_FLOW_COLUMNS if symbol != "MSBT"),
+)
 ETF_PLACEHOLDERS = {"", "-", "â€”"}
 PLACEHOLDER = "â€”"
 TEXT_ACCEPT = "text/plain, text/markdown, */*"
@@ -23,6 +28,16 @@ FAST_TTL = 30
 MARKET_TTL = 300
 SENTIMENT_TTL = 1800
 MACRO_TTL = 21600
+ETF_FLOW_DATE_RE = re.compile(r"^\d{2}\s+[A-Za-z]{3}\s+\d{4}$")
+
+
+def _cache_data_headless_safe(*cache_args, **cache_kwargs):
+    def decorator(func):
+        if getattr(st_runtime, "exists", lambda: False)():
+            return st.cache_data(*cache_args, **cache_kwargs)(func)
+        return func
+
+    return decorator
 
 
 def _latency_ms(started_at: float) -> float:
@@ -167,10 +182,7 @@ def _normalize_calendar_events(events, now=None):
             )
 
     normalized.sort(key=lambda item: item["_sort"])
-    return [
-        {key: value for key, value in event.items() if key != "_sort"}
-        for event in normalized[:5]
-    ]
+    return [{key: value for key, value in event.items() if key != "_sort"} for event in normalized[:5]]
 
 
 def format_flow_millions(value):
@@ -193,7 +205,30 @@ def build_etf_flow_df(data):
     )
 
 
-def parse_latest_etf_flow_row(flow_text):
+def _clean_etf_flow_cell(value):
+    text = str(value or "").replace("\xa0", " ").strip()
+    return re.sub(r"\s+", " ", text)
+
+
+def _resolve_etf_flow_values(raw_values):
+    cleaned = [_clean_etf_flow_cell(value) for value in raw_values]
+    for layout in ETF_FLOW_LAYOUTS:
+        if len(cleaned) != len(layout):
+            continue
+
+        resolved = {symbol: PLACEHOLDER for symbol in ETF_FLOW_COLUMNS}
+        for symbol, raw_value in zip(layout, cleaned):
+            resolved[symbol] = raw_value or PLACEHOLDER
+        return [resolved[symbol] for symbol in ETF_FLOW_COLUMNS]
+
+    return None
+
+
+def _has_populated_etf_values(values):
+    return sum(value not in ETF_PLACEHOLDERS for value in values[:-1]) > 0
+
+
+def _parse_latest_etf_flow_pipe_row(flow_text):
     flow_rows = [
         line.strip()
         for line in flow_text.splitlines()
@@ -203,19 +238,50 @@ def parse_latest_etf_flow_row(flow_text):
         return None
 
     for row in reversed(flow_rows):
-        parts = [part.strip() for part in row.split("|")[1:-1]]
-        if len(parts) < len(ETF_FLOW_COLUMNS) + 1:
+        parts = [_clean_etf_flow_cell(part) for part in row.split("|")[1:-1]]
+        if len(parts) < 2:
             continue
 
         date_text = parts[0]
-        values = parts[1 : 1 + len(ETF_FLOW_COLUMNS)]
-        non_placeholder_count = sum(value not in ETF_PLACEHOLDERS for value in values[:-1])
-        if non_placeholder_count == 0:
+        values = _resolve_etf_flow_values(parts[1:])
+        if not values or not _has_populated_etf_values(values):
             continue
 
         return date_text, values
 
     return None
+
+
+def _parse_latest_etf_flow_flat_row(flow_text):
+    lines = [_clean_etf_flow_cell(line) for line in flow_text.splitlines()]
+    lines = [line for line in lines if line]
+    if not lines:
+        return None
+
+    stop_markers = {"Total", "Average", "Maximum", "Minimum"}
+    parsed_rows = []
+    for index, line in enumerate(lines):
+        if not ETF_FLOW_DATE_RE.match(line):
+            continue
+
+        next_index = len(lines)
+        for probe in range(index + 1, len(lines)):
+            candidate = lines[probe]
+            if ETF_FLOW_DATE_RE.match(candidate) or candidate in stop_markers or candidate.startswith("Source:"):
+                next_index = probe
+                break
+
+        values = _resolve_etf_flow_values(lines[index + 1 : next_index])
+        if not values or not _has_populated_etf_values(values):
+            continue
+
+        parsed_rows.append((line, values))
+
+    return parsed_rows[-1] if parsed_rows else None
+
+
+def parse_latest_etf_flow_row(flow_text):
+    return _parse_latest_etf_flow_pipe_row(flow_text) or _parse_latest_etf_flow_flat_row(flow_text)
 
 
 def format_market_cap_short(value):
@@ -365,7 +431,7 @@ def _load_fred_series(*, series_id: str, api_key: str, limit: int, source: str):
     return safe_fetch_json(source, url, timeout=6)
 
 
-@st.cache_data(ttl=FAST_TTL)
+@_cache_data_headless_safe(ttl=FAST_TTL)
 def fetch_live_usdt_d():
     health = HealthRecorder()
     result = {"USDT_D": PLACEHOLDER, "USDT_D_SOURCE": PLACEHOLDER}
@@ -481,7 +547,7 @@ def fetch_live_usdt_d():
     return result
 
 
-@st.cache_data(ttl=FAST_TTL)
+@_cache_data_headless_safe(ttl=FAST_TTL)
 def fetch_live_market_cap_segments():
     health = HealthRecorder()
     symbols = {
@@ -609,7 +675,7 @@ def fetch_live_market_cap_segments():
     return result
 
 
-@st.cache_data(ttl=180)
+@_cache_data_headless_safe(ttl=180)
 def _legacy_veri_motoru(fred_api_key=""):
     data = {}
     health = HealthRecorder()
@@ -1193,7 +1259,7 @@ def _legacy_veri_motoru(fred_api_key=""):
     return data
 
 
-@st.cache_data(ttl=MARKET_TTL)
+@_cache_data_headless_safe(ttl=MARKET_TTL)
 def _fetch_market_snapshot():
     data = {}
     health = HealthRecorder()
@@ -1459,7 +1525,7 @@ def _fetch_market_snapshot():
     return data
 
 
-@st.cache_data(ttl=FAST_TTL)
+@_cache_data_headless_safe(ttl=FAST_TTL)
 def _fetch_orderbook_snapshot():
     data = {}
     health = HealthRecorder()
@@ -1523,7 +1589,7 @@ def _fetch_orderbook_snapshot():
     return data
 
 
-@st.cache_data(ttl=MACRO_TTL)
+@_cache_data_headless_safe(ttl=MACRO_TTL)
 def _fetch_stablecoin_snapshot():
     data = {}
     health = HealthRecorder()
@@ -1591,7 +1657,7 @@ def _fetch_stablecoin_snapshot():
     return data
 
 
-@st.cache_data(ttl=MACRO_TTL)
+@_cache_data_headless_safe(ttl=MACRO_TTL)
 def _fetch_macro_snapshot(fred_api_key=""):
     data = {}
     health = HealthRecorder()
@@ -1649,7 +1715,7 @@ def _fetch_macro_snapshot(fred_api_key=""):
     return data
 
 
-@st.cache_data(ttl=3600)
+@_cache_data_headless_safe(ttl=3600)
 def _fetch_onchain_snapshot():
     data = {}
     health = HealthRecorder()
@@ -1676,7 +1742,7 @@ def _fetch_onchain_snapshot():
     return data
 
 
-@st.cache_data(ttl=SENTIMENT_TTL)
+@_cache_data_headless_safe(ttl=SENTIMENT_TTL)
 def _fetch_sentiment_snapshot():
     data = {}
     health = HealthRecorder()
@@ -1776,7 +1842,7 @@ def _fetch_sentiment_snapshot():
     return data
 
 
-@st.cache_data(ttl=SENTIMENT_TTL)
+@_cache_data_headless_safe(ttl=SENTIMENT_TTL)
 def _fetch_economic_calendar_snapshot():
     data = {"ECONOMIC_CALENDAR": [], "ECONOMIC_CALENDAR_SOURCE": PLACEHOLDER}
     health = HealthRecorder()
@@ -1843,7 +1909,11 @@ def load_terminal_data(fred_api_key=""):
     }
     payloads = _run_parallel_tasks(task_map, max_workers=3)
     normalized_payloads = [
-        payloads[task_name] if not isinstance(payloads[task_name], Exception) else _task_failure_payload(task_name, payloads[task_name])
+        (
+            payloads[task_name]
+            if not isinstance(payloads[task_name], Exception)
+            else _task_failure_payload(task_name, payloads[task_name])
+        )
         for task_name in ("base", "market_cap", "derivatives")
     ]
     data = _merge_result_payloads(*normalized_payloads)
@@ -1852,7 +1922,7 @@ def load_terminal_data(fred_api_key=""):
     return data
 
 
-@st.cache_data(ttl=FAST_TTL)
+@_cache_data_headless_safe(ttl=FAST_TTL)
 def turev_cek():
     data = {}
     health = HealthRecorder()
