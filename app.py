@@ -1855,10 +1855,6 @@ def init_ui_state():
         st.session_state["control_rail_open"] = True
     if "macro_bulten_report" not in st.session_state:
         st.session_state["macro_bulten_report"] = None
-    if "aggr_panel_loaded" not in st.session_state:
-        st.session_state["aggr_panel_loaded"] = False
-    if "aggr_panel_reload_nonce" not in st.session_state:
-        st.session_state["aggr_panel_reload_nonce"] = 0
 
 
 def render_preferences_panel(host, key_prefix: str = "prefs", *, expanded: bool = False):
@@ -2964,70 +2960,39 @@ def render_flow_risk_tab(data: dict, health_summary: dict):
 
 def render_aggr_tab():
     st.markdown(
-        f"<div class='table-section-title'>{clean_text(bi_label('Tape and Orderflow', 'Tape ve Orderflow'))}</div>",
+        f"<div class='table-section-title'>{clean_text(bi_label('AGGR', 'Canli Orderflow'))}</div>",
         unsafe_allow_html=True,
     )
     st.markdown(
-        "<div class='table-section-copy'>Bu sekme canli tape/orderflow izleme icindir; terminalin karar ozetini tekrar etmez.</div>",
+        "<div class='table-section-copy'>Bu sekme terminal icine gomulu panel degil, AGGR yuzeyine temiz bir gecit olarak calisir.</div>",
         unsafe_allow_html=True,
     )
-
-    panel_loaded = st.session_state.get("aggr_panel_loaded", False)
-    action_col, link_col, info_col = st.columns([0.24, 0.24, 0.52])
+    st.markdown(
+        """
+        <div class="surface">
+            <div class="panel-kicker">External Market Tool</div>
+            <div class="panel-title">Open AGGR</div>
+            <div class="panel-copy">AGGR canli tape ve orderflow takibi icin kullanilir. Kaynak tarafinda iframe ile gomulmeye izin verilmedigi icin bu terminal icinde bos panel gostermek yerine dogrudan temiz bir gecit sunuyoruz.</div>
+            <div class="panel-copy" style="margin-top:10px">Canli akis, agresif islem yogunlugu ve orderflow okumasi icin paneli yeni sekmede ac. Source: aggr.trade</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+    action_col, note_col = st.columns([0.28, 0.72])
     with action_col:
-        if panel_loaded:
-            if st.button("Paneli sifirla", key="aggr_panel_reset", width="stretch"):
-                st.session_state["aggr_panel_loaded"] = False
-                st.session_state["aggr_panel_reload_nonce"] += 1
-                panel_loaded = False
-        else:
-            if st.button("Canli paneli yukle", key="aggr_panel_load", width="stretch"):
-                st.session_state["aggr_panel_loaded"] = True
-                panel_loaded = True
-    with link_col:
         st.link_button("AGGR'i yeni sekmede ac", AGGR_PANEL_URL, width="stretch")
-    with info_col:
+    with note_col:
         st.markdown(
             """
             <div class="surface surface-compact">
-                <div class="panel-kicker">Live Tape</div>
-                <div class="panel-title">Source: AGGR</div>
-                <div class="panel-copy">Panel bos kalirsa veya iframe yuklenmezse yandaki linkten dogrudan AGGR yuzeyini ac.</div>
+                <div class="panel-kicker">Launchpad</div>
+                <div class="panel-title">Neden harici aciliyor?</div>
+                <div class="panel-copy">AGGR kendi guvenlik politikasiyla iframe acilisini reddediyor. Bu nedenle en temiz deneyim, beyaz bos alan yerine dogrudan dis araci acmak.</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-
-    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-    if not panel_loaded:
-        st.markdown(
-            """
-            <div class="surface">
-                <div class="panel-kicker">On-Demand Load</div>
-                <div class="panel-title">Canli panel hazir bekliyor</div>
-                <div class="panel-copy">Bu yuzey agir ve canli bir iframe oldugu icin otomatik yuklenmez. Yuklemek icin ustteki butonu kullan; sekmeler arasinda gezerken oturum boyunca acik kalir.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        return
-
-    embed_url = f"{AGGR_PANEL_URL}?embed_nonce={st.session_state.get('aggr_panel_reload_nonce', 0)}"
-    components.html(
-        f"""
-        <div style="height:820px;border:1px solid rgba(126,158,197,0.16);border-radius:20px;overflow:hidden;background:#08111d;">
-            <iframe
-                src="{html.escape(embed_url, quote=True)}"
-                title="AGGR Tape"
-                loading="lazy"
-                referrerpolicy="no-referrer-when-downgrade"
-                style="width:100%;height:100%;border:0;background:#08111d;"
-            ></iframe>
-        </div>
-        """,
-        height=840,
-    )
-    st.caption("Panel bos gorunurse framing kisiti olabilir; bu durumda yukaridaki AGGR linkiyle harici acilis kullan.")
 
 
 def render_report_tab(
@@ -3116,7 +3081,7 @@ render_status_hub(last_updated, health_summary, alerts, analytics)
 render_sidebar(data, brief, last_updated, health_summary, preferences, alerts)
 render_control_rail(data, brief, last_updated, health_summary, alerts)
 
-tabs = st.tabs(["Terminal", "Macro", "Crypto", "Flow", "Tape", "Reports", "Atlas"])
+tabs = st.tabs(["Terminal", "Macro", "Crypto", "Flow", "AGGR", "Reports", "Atlas"])
 with tabs[0]:
     render_overview_tab(data, brief, analytics, alerts, health_summary)
 with tabs[1]:
